@@ -363,6 +363,31 @@ files must be preserved.
 **Open:** the original ZIP is not available; mapping and extraction are not started; the
 shared DB is pending; O*NET is a shared dependency with no owner agreed.
 
+### 2026-10-06 — ESCO commit, extraction-input policy, Team B summary (Sprint 1)
+**Goal:** Verify and commit the ESCO work, then document the extraction input policy and a
+Team B Sprint 1 summary. No extraction, no Team A work, no O*NET, no LLM calls.
+**What Claude did:**
+- Re-verified the repeated ESCO URIs against the source CSV and the DB. All 21 URIs appear
+  exactly twice and differ **only** in `modifiedDate`. All 42 original rows are in
+  `esco_source_duplicates` with matching row numbers and dates. Exactly one row per URI is
+  kept (the latest), and its label and description match the source.
+- Confirmed that `.env`, `.venv`, the DB, the raw files, the ESCO CSVs and the derived files
+  are ignored, and that nothing sensitive is tracked.
+- 177 tests passed. Committed `5f342cf` "Add ESCO reference import and validation".
+- Ran a read-only survey of section headings and boilerplate before drafting the policy:
+  - equal-opportunity text appears in 468 / 468 usable postings, benefits in 466 / 468
+  - Figma's accommodations section appears in 159 / 159
+  - Oura's fraud disclaimer appears in 80 / 80
+- Wrote `docs/extraction_input_policy.md` (P1–P7, proposed and not implemented). It lists
+  open questions (pay sections, recruiting notices, values sections, shared review of
+  near-duplicates) rather than deciding them.
+- Wrote `reports/sprint1_team_b_summary.md`, and added a status overview to the checklist
+  that separates completed local work from unresolved shared deliverables.
+**Accuracy note:** my first summary draft said the Greenhouse API was the "only external
+API". I corrected it to also mention the careers-page and ESCO documentation fetches made
+during development.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

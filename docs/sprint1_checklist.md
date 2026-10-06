@@ -14,6 +14,37 @@ Items are sorted into three groups by how firmly the brief states them:
 
 ---
 
+## 0. Status at a glance (2026-10-06): Sprint 1 is **NOT complete**
+
+**Completed locally by Team B** (committed through `5f342cf`; the summary is in
+`reports/sprint1_team_b_summary.md`):
+- [x] Repository, environment and 177 passing tests
+- [x] Greenhouse snapshot fetcher, plus a **pilot** corpus: 470 postings (468 usable, 2
+      flagged), 5 employers
+- [x] Cleaning, quality report, and **local-dev** SQLite load
+- [x] Pilot exploration notebook and findings (seniority, language, near-duplicate candidates)
+- [x] ESCO v1.2.1 skill reference import (local-dev DB; original ZIP not available, CSV
+      hashes recorded)
+- [x] Proposed extraction input policy (`docs/extraction_input_policy.md`). It is
+      documented only, not implemented
+
+**Unresolved shared deliverables** (they block Sprint 1 completion):
+- [ ] **[REQ]** Data contract agreed with Section A (draft v0.4 is unreviewed)
+- [ ] Shared corpus: board list and canonical snapshot (D1, D2). The current corpus is a
+      pilot proposal
+- [ ] Shared database engine and location (D3), and raw/reference file storage (D8)
+- [ ] Populated **shared** database (the sample deliverable). Only a local-dev copy exists
+- [ ] Exploration notebook re-run on the agreed corpus
+- [ ] **O*NET** reference tables: a shared dependency with ownership **not agreed** with
+      Section A (D10). Team B has not loaded O*NET
+- [ ] Sprint 1 report to the instructor, including token usage (pipeline LLM tokens: 0)
+
+**Sprint 2 preparation** (Team B, not started): skill annotation guidelines, a 100-posting
+hand-labelled evaluation set, building the extraction input under the policy, extraction,
+and quality evaluation.
+
+---
+
 ## 1. Project-wide requirements that apply from Sprint 1
 
 - [ ] **[REQ]** Use public data only: published datasets and official APIs (*p.5*).
@@ -93,7 +124,7 @@ Items are sorted into three groups by how firmly the brief states them:
     - [x] Imported: 14,579 concepts (13,939 skills, 640 skill groups), 20,819 broader
           relations, 5,818 skill–skill relations. 0 unresolved references. Postings are
           still 470 / 468 / 2
-    - [ ] Commit `data/reference_manifest.csv`, the reports and the code (pending review)
+    - [x] Committed `data/reference_manifest.csv`, the reports and the code (`5f342cf`)
     - [ ] Agree the ESCO version and table design with Section A (contract D9, §8)
   - [ ] O*NET skills and occupation–skill links (needed for the Sprint 5 join). **Shared
         dependency to coordinate with Section A; owner not agreed** (contract D10). Not
