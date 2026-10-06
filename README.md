@@ -8,9 +8,11 @@ Sprint 5 through a shared data contract (`docs/data_contract.md`).
 Job postings come from the **Greenhouse Job Board API** (public, read-only endpoints at
 `boards-api.greenhouse.io`). See "Data source" below for the open questions.
 
-**Current status:** Sprint 1 (Data Acquisition & Exploration). The snapshot fetcher is
-implemented and tested with mocked responses. No real postings have been fetched yet, and no
-extraction exists. See `docs/sprint1_checklist.md`.
+**Current status:** Sprint 1 (Data Acquisition & Exploration), in progress. The snapshot
+fetcher is implemented and tested. A **pilot** snapshot (5 boards, 470 postings) was
+collected on 2026-10-06; see `reports/sprint1_pilot_collection.md`. The board list is a
+pilot proposal pending Section A. No cleaning, database loading or extraction exists yet.
+See `docs/sprint1_checklist.md`.
 
 ## Repository layout
 
@@ -101,7 +103,7 @@ access, or a free-tier provider).
 
 - **Postings:** Greenhouse Job Board API, e.g.
   `GET https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true`.
-  The list of company board tokens is in `config/boards.yaml` (empty draft, pending Section A).
+  The list of company board tokens is in `config/boards.yaml` (pilot proposal, pending Section A).
 - **Reference taxonomies:** ESCO skills (Section B's reference standard), Lightcast Open
   Skills (emerging-skill coverage), O*NET (shared with Section A; task–skill priors).
 

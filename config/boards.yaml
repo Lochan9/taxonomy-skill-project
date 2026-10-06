@@ -1,6 +1,7 @@
 # Greenhouse job boards to snapshot.
 #
-# STATUS: DRAFT, pending agreement with Section A (docs/data_contract.md, D2).
+# STATUS: PILOT PROPOSAL, pending agreement with Section A (docs/data_contract.md, D2).
+# This is a small pilot list for testing collection. It is NOT the agreed shared corpus.
 # Both sections must build from the same board list and the same canonical snapshot.
 #
 # Fields per board:
@@ -13,12 +14,44 @@
 #   industry_source  (required if industry is set) Where the label came from, so the
 #                    method can be documented in the exploration notebook.
 #
-# Example (commented out; no boards have been agreed yet):
+# Token verification (2026-10-06): each token was found in the HTML of the company's own
+# careers page, as a Greenhouse board/API/embed URL. Tokens were not guessed.
+#   duolingo                 https://careers.duolingo.com/
+#                            -> boards-api.greenhouse.io/v1/boards/duolingo/departments
+#   robinhood                https://careers.robinhood.com/
+#                            -> api.greenhouse.io/v1/boards/robinhood/jobs
+#   recursionpharmaceuticals https://www.recursion.com/careers
+#                            -> boards.greenhouse.io/embed/job_board/js?for=recursionpharmaceuticals
+#   oura                     https://ouraring.com/careers
+#                            -> job-boards.greenhouse.io/oura
+#   figma                    https://www.figma.com/careers/
+#                            -> boards.greenhouse.io/figma/jobs/<id>
 #
-# boards:
-#   - board_token: examplecompany
-#     company_name: Example Company, Inc.
-#     industry: Software
-#     industry_source: manual, from the company's own "About" page
+# Industry labels below are pilot labels assigned by the team from each company's primary
+# product. They are not taken from an external classification and must be reviewed with
+# Section A before use in analysis.
 
-boards: []
+boards:
+  - board_token: duolingo
+    company_name: Duolingo
+    industry: Education technology
+    industry_source: team-assigned pilot label (primary product); see careers.duolingo.com
+  - board_token: robinhood
+    company_name: Robinhood
+    industry: Financial services
+    industry_source: team-assigned pilot label (primary product); see careers.robinhood.com
+  - board_token: recursionpharmaceuticals
+    company_name: Recursion Pharmaceuticals
+    industry: Biotechnology
+    industry_source: team-assigned pilot label (primary product); see recursion.com/careers
+  - board_token: oura
+    company_name: Oura
+    industry: Consumer health technology
+    industry_source: team-assigned pilot label (primary product); see ouraring.com/careers
+  - board_token: figma
+    company_name: Figma
+    industry: Software
+    industry_source: team-assigned pilot label (primary product); see figma.com/careers
+
+# Verified alternate (not in the pilot): reddit, at https://www.redditinc.com/careers
+# -> job-boards.greenhouse.io/reddit/jobs/<id>

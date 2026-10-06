@@ -107,6 +107,38 @@ listed scenarios, a fix to D1 wording, README commands, and this log entry.
 shipped config both print the "No boards configured" message and exit 0 without touching
 the network.
 
+### 2026-10-06 — Pilot employers and first real collection (Sprint 1)
+**Goal:** Commit the fetcher, choose pilot employers with verified Greenhouse boards, and run
+the first real collection. Labelled as a pilot; no cleaning, DB loading or extraction.
+**Prompt (summary):** Review the diff and status, check that `.env`, `.venv` and raw data are
+ignored, and commit as "Add Greenhouse snapshot fetcher and tests". Find 5 employers across
+3 or more industries and verify their tokens on official careers pages, without guessing or
+using documentation example companies. Populate `boards.yaml` as a pilot proposal. Run a dry
+run, then the real fetch. Inspect the snapshots read-only. Update the checklist and this log,
+and write `reports/sprint1_pilot_collection.md`. No push and no upload.
+**What Claude did:**
+- Confirmed the ignore rules with `git check-ignore`, then committed `dfc411d`.
+- Downloaded the HTML of about 45 official careers pages with `curl` and grepped it for
+  Greenhouse board, API or embed URLs. Kept only tokens that actually appear on the
+  company's own page. JavaScript-rendered pages and pages that returned 403 (e.g. Airbnb,
+  Stripe, Datadog) were skipped rather than guessed.
+- Chose `duolingo`, `robinhood`, `recursionpharmaceuticals`, `oura` and `figma` (5
+  industries), with `reddit` as a verified alternate. Verification URLs are recorded as YAML
+  comments, because the config schema does not allow extra keys.
+- The dry run planned 5 GETs to the expected URL pattern. The real run fetched 5 boards
+  (470 postings) with 0 failures and no zero-job boards.
+- The inspection script lives outside the repo and reads files only. Hashes and sizes match
+  the manifest. Raw files were re-hashed after inspection and were unchanged.
+**What we checked / changed:** *(team to fill in after review)*
+**Outcome / lessons:**
+- One bash loop reused a stale `page.html` after a failed request, which briefly looked like
+  a false Greenhouse hit for Warby Parker. It was caught and fixed by deleting the file on
+  each iteration. Lesson: clear temporary outputs in loops so a failure can't inherit the
+  previous result.
+- Greenhouse's `language` field is set by the employer. It is not a detected language.
+- Recursion's board includes a placeholder "Don't see what you're looking for?" posting,
+  which will need filtering.
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

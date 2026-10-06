@@ -58,13 +58,17 @@ Items are sorted into three groups by how firmly the brief states them:
   - [x] Local Git repo initialized with project structure
   - [ ] Create the shared remote (e.g. GitHub) and add teammates
 - [ ] **[SAMPLE]** Collect a corpus of job postings from approved public sources.
-  - [ ] Pick the list of Greenhouse board tokens (companies) and add it to
-        `config/boards.yaml` (currently an empty draft, pending Section A)
+  - [ ] Agree the final list of Greenhouse board tokens with Section A. **Pending.**
+    - [x] Pilot proposal: 5 boards in 5 industries (Duolingo, Robinhood, Recursion, Oura,
+          Figma). Tokens were verified on official careers pages and are listed in
+          `config/boards.yaml`.
   - [x] Write a fetcher that saves untouched JSON responses to timestamped snapshots in
-        `data/raw/` (see data contract §10): `src/fetch_greenhouse.py`, tested with mocked
-        responses only
-  - [ ] First real fetch (not yet run)
-  - [ ] Record each snapshot in `data/raw_manifest.csv` and archive it to the agreed shared location
+        `data/raw/` (see data contract §10): `src/fetch_greenhouse.py`, tested with mocks
+  - [x] Pilot fetch: snapshot `20261006T171338Z`, 470 postings, 0 failures. See
+        `reports/sprint1_pilot_collection.md`. This is a **pilot only**, not the shared corpus.
+  - [x] Record each snapshot in `data/raw_manifest.csv` (pilot: 5 rows, hashes verified)
+  - [ ] Archive snapshots to the agreed shared location (D8, pending)
+  - [ ] Collect the agreed (non-pilot) corpus and name the canonical snapshot in the contract
 - [ ] **[SAMPLE]** Load the postings into a **shared database**.
   - [ ] Agree the shared database engine and location with Section A (data contract D3).
         **Pending.**

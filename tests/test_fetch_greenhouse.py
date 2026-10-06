@@ -138,8 +138,8 @@ def test_config_rejects_invalid(tmp_path, text, match):
         fg.load_config(write_config(tmp_path, text))
 
 
-def test_shipped_config_is_valid_and_empty():
-    assert fg.load_config(fg.REPO_ROOT / "config" / "boards.yaml") == []
+def test_shipped_config_is_valid():
+    fg.load_config(fg.REPO_ROOT / "config" / "boards.yaml")  # raises ConfigError if invalid
 
 
 def test_empty_board_list_exits_cleanly(tmp_path, capsys):
