@@ -12,8 +12,9 @@ Job postings come from the **Greenhouse Job Board API** (public, read-only endpo
 fetcher is implemented and tested. A **pilot** snapshot (5 boards, 470 postings) was
 collected on 2026-10-06; see `reports/sprint1_pilot_collection.md`. The board list is a
 pilot proposal pending Section A. Pilot text cleaning is implemented (`src/prepare_postings.py`):
-470 rows, 468 usable. See `reports/sprint1_cleaning_quality_20261006T171338Z.md`. No database
-loading or extraction exists yet. See `docs/sprint1_checklist.md`.
+470 rows, 468 usable. See `reports/sprint1_cleaning_quality_20261006T171338Z.md`. The pilot
+is loaded into a **local development** SQLite database (`src/load_postings.py`); the shared
+database is still pending. No extraction exists yet. See `docs/sprint1_checklist.md`.
 
 ## Repository layout
 
@@ -26,7 +27,8 @@ data/reference/    ESCO, Lightcast, O*NET downloads (git-ignored)
 docs/              Project brief, sprint checklists, data contract, Claude usage log
 notebooks/         Exploration and evaluation notebooks
 reports/           Sprint reports (incl. LLM token usage)
-src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py)
+sql/               Versioned local-dev database schema (schema_v1.sql)
+src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py, load_postings.py)
 tests/             pytest suite (mocked HTTP)
 ```
 
@@ -127,7 +129,33 @@ python src/prepare_postings.py --snapshot 20261006T171338Z
 - **`source_language`:** Greenhouse's employer-set `language` field. It is not a detected
   language.
 
-No database loading or skill extraction yet.
+No skill extraction yet.
+
+## Loading into a local SQLite database (development only)
+
+This is **not** the shared database. The shared engine and location are still pending with
+Section A (data contract D3). Each SQLite file is a separate local copy.
+
+```bash
+python src/load_postings.py \
+  --input data/processed/postings_20261006T171338Z.jsonl \
+  --db data/processed/taxonomy_pilot.sqlite
+```
+
+- **Schema:** `sql/schema_v1.sql` (version recorded in `schema_meta`). It has `snapshots`,
+  `loads` (provenance: snapshot, cleaning version, input SHA-256, loader version) and
+  `postings` (every processed field), plus a `usable_postings` view (rows with an empty
+  `exclusion_reason`). No taxonomy tables yet.
+- **Key:** `(snapshot_id, posting_id)`, so a new snapshot adds rows and never overwrites
+  older posting text.
+- **Safety:** the whole file is validated first and loaded in one transaction, with
+  foreign keys enforced. The loader never updates or deletes rows.
+- **Re-runs:** re-running the same input is a no-op. If a row with an existing key has
+  different content, the whole load is rejected and nothing is written.
+- **Exit codes:** `0` loaded or already loaded, `2` invalid input, `3` conflict, `4`
+  database error.
+- Requires SQLite ≥ 3.37, which Python's bundled SQLite normally satisfies. The `.sqlite`
+  file is git-ignored.
 
 ## Data source
 
@@ -163,7 +191,9 @@ Raw responses are git-ignored, so they are preserved outside Git (full details i
 
 SQLite/DuckDB files under `data/processed/` are **local development copies only**. Each copy
 is a separate file and is not shared automatically. The shared database engine and location
-are pending agreement with Section A.
+are pending agreement with Section A. The local SQLite loader is described above. Anyone with the
+raw snapshot can rebuild an equivalent database (same posting rows; only the load timestamps
+differ) by running `prepare_postings.py`, then `load_postings.py`.
 
 ## Documentation
 

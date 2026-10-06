@@ -72,6 +72,10 @@ Items are sorted into three groups by how firmly the brief states them:
 - [ ] **[SAMPLE]** Load the postings into a **shared database**.
   - [ ] Agree the shared database engine and location with Section A (data contract D3).
         **Pending.**
+  - [x] Local development SQLite loader: `src/load_postings.py` + `sql/schema_v1.sql`. The
+        pilot is loaded into `data/processed/taxonomy_pilot.sqlite`: 470 rows (468 usable,
+        2 flagged), and all counts and field values match the JSONL. This is **not** the
+        shared database.
   - [ ] Until then, use SQLite/DuckDB for local development only. Every local copy is a
         separate file and is not shared automatically.
 - [ ] **[SAMPLE]** Load O*NET and ESCO reference tables next to the postings.

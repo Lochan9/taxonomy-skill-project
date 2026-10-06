@@ -1,6 +1,6 @@
-# Shared Data Contract (DRAFT v0.3)
+# Shared Data Contract (DRAFT v0.3.1)
 
-**Status:** Draft v0.3 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
+**Status:** Draft v0.3.1 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
 **Required by:** the end of Sprint 1. The brief says "Both groups must agree on a shared schema
 in Sprint 1 so that Sprint 5 can join the taxonomies without rework" (p.5).
 
@@ -16,7 +16,7 @@ Field notes use these labels:
 |---|---|---|
 | D1 | Shared posting source | Greenhouse Job Board API (public, official API). Confirm with the instructor only if the team is unsure whether it is permitted (brief p.5) |
 | D2 | Board (company) list and snapshot date | One shared `config/boards.yaml`, frozen on an agreed date |
-| D3 | Shared database engine and location | **Pending agreement with Section A.** SQLite/DuckDB are fine for local development, but each copy is a separate file and is not shared automatically, so they do not satisfy the "shared database" deliverable on their own |
+| D3 | Shared database engine and location | **Pending agreement with Section A.** SQLite/DuckDB are fine for local development, but each copy is a separate file and is not shared automatically, so they do not satisfy the "shared database" deliverable on their own. Section B has a local-dev SQLite implementation of §2 (`sql/schema_v1.sql`, see §11) that can be ported to whatever engine is agreed |
 | D8 | Raw snapshot storage and sharing | See §10. The shared storage location is still to be agreed |
 | D4 | ID formats | See §1 |
 | D5 | Representation for comparing topics across groups | One shared sentence-embedding model (name and version recorded) |
@@ -179,7 +179,31 @@ Raw API responses are excluded from Git (`data/raw/*`), so they are preserved li
 
 Canonical snapshot: *not yet fetched*.
 
+## 11. Local development storage (Section B) [PROP]
+
+This is a reference implementation of §2, **not** the shared database (D3 is still pending).
+
+- **Schema:** `sql/schema_v1.sql` (SQLite ≥ 3.37, STRICT tables, foreign keys on).
+- **Tables:**
+  - `postings`: every §2 field, plus `load_id`. Primary key (`snapshot_id`, `posting_id`).
+  - `snapshots`: `snapshot_id`, `source`, `first_loaded_at`.
+  - `loads`: `snapshot_id`, `cleaning_version`, `input_path`, `input_sha256`, `row_count`,
+    `inserted_rows`, `loader_version` and `loaded_at`. Unique on (`snapshot_id`,
+    `cleaning_version`, `input_sha256`).
+- **Field encoding:** `departments` and `offices` are stored as JSON-array text (checked
+  with `json_valid`). `is_placeholder` is stored as 0/1.
+- **Duplicates:** `is_duplicate_of` has a composite foreign key to (`snapshot_id`,
+  `posting_id`) in the same snapshot.
+- **View:** `usable_postings` holds the rows with an empty `exclusion_reason`.
+- **Loading rules** (`src/load_postings.py`):
+  - Insert only, all rows in one transaction.
+  - Identical input is a no-op.
+  - Different content for an existing key is rejected, including a different
+    `cleaning_version` for the same snapshot. Reloading a snapshot under new cleaning rules
+    therefore needs a new database or a future schema version. This is an open design point.
+
 ### Changelog
+- v0.3.1: Added §11 describing Section B's local-dev SQLite implementation. D3 is still pending.
 - v0.3: §2 now matches the cleaner's actual output (cleaning version 0.1.0). Proposed new
   fields, all pending Section A: `internal_job_id`, `source_company_name`, `offices`,
   `industry_source`, `source_language` (replaces the detected `language`), `word_count`,

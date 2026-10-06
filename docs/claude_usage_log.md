@@ -193,6 +193,50 @@ and the source company names.
 - Reprocessed the pilot: 470 rows, 468 usable, same as before. Raw hashes unchanged. 68 tests pass.
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-06 — Local SQLite loading (Sprint 1)
+**Goal:** Load the processed pilot into a **local development** SQLite database. This does
+not choose the shared DB. No API calls.
+**Prompt (summary):** Commit the cleaning work as "Clean and validate pilot job postings".
+Implement `src/load_postings.py` with a versioned schema and tests. Requirements: explicit
+input and DB paths; all 470 rows stored, flagged rows included; every field preserved;
+primary key (`snapshot_id`, `posting_id`); a `usable_postings` view; foreign keys on;
+validation followed by a single transaction; idempotent re-runs; conflicting content
+rejected; snapshot and cleaning-version provenance; no deletes and no taxonomy tables.
+Verify the counts against the JSONL.
+**What Claude did:**
+- Committed `3735716`.
+- `sql/schema_v1.sql`:
+  - STRICT tables `schema_meta`, `snapshots`, `loads` and `postings`, plus the
+    `usable_postings` view.
+  - CHECK constraints: posting_id format, valid JSON arrays, 0/1 booleans.
+  - A composite deferred FK from `is_duplicate_of` to the same snapshot.
+- `src/load_postings.py`:
+  - Validates the whole file first: exact field set, types, ID consistency, a single
+    snapshot and cleaning version, flag consistency, and duplicate targets present.
+  - Loads inside `BEGIN IMMEDIATE`/`COMMIT`, with `ROLLBACK` on any error.
+  - Compares every field of rows that already exist and raises `ConflictError` on any
+    difference.
+  - `loads` is unique on (snapshot, cleaning version, input SHA-256), so an identical
+    re-run adds nothing.
+- 28 loader tests (96 in total, all passing):
+  - repeat load is a no-op; a superset input adds only the new rows
+  - conflicting content is rejected and the DB is left unchanged
+  - a different cleaning version for the same snapshot conflicts
+  - the same posting in two snapshots keeps both texts
+  - a DB error mid-insert (forced CHECK violation) rolls back to empty tables
+  - invalid JSONL loads nothing
+  - foreign keys are enforced, both immediate and deferred
+  - field and file validation, CLI exit codes
+- Loaded the pilot: 470 inserted. A second run reported "already loaded", inserted 0 and
+  left 470 unchanged. A read-only verification script compared total, usable, flag and
+  per-company counts, plus every field of every row: all matched. `integrity_check` is ok,
+  there are 0 FK violations, and the raw hashes are unchanged.
+**Design points to review:**
+- Re-cleaning an already-loaded snapshot with a new `cleaning_version` is rejected as a
+  conflict. That is safe, but it means a new DB or a schema change is needed later.
+- A rebuilt DB is equivalent, not byte-identical, because the load timestamps differ.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |
