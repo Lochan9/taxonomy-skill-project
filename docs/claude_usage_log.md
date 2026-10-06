@@ -63,6 +63,50 @@ corrected in the review below.
 file as a "shared" database. Keep the brief's wording ("if unsure, ask") instead of
 strengthening it into a requirement.
 
+### 2026-10-06 — Greenhouse snapshot fetcher (Sprint 1)
+**Goal:** Implement the raw snapshot fetcher described in data contract §10. Test it with
+mocked responses only. No real postings are fetched yet.
+**Prompt (summary):** Create `config/boards.yaml` as an empty draft with a commented
+example. Write `src/fetch_greenhouse.py` against `GET /v1/boards/{board_token}/jobs?content=true`
+(public, no auth, no POST, no Anthropic calls). Requirements: config validation including
+duplicate tokens; a clean exit on an empty list; validation that responses have a `jobs`
+list; original bytes saved in timestamped snapshots; cache reuse verified by hash; `--refresh`
+that never overwrites; timeouts, a delay between boards, and bounded retries; `Retry-After`
+honoured within a retry budget; manifest fields from the contract; separate
+fetched/cached/failed reporting; failed responses never cached; `--dry-run`; original
+snapshot IDs kept on cache reuse. Add requirements files and a `.venv`, mocked tests for 10
+listed scenarios, a fix to D1 wording, README commands, and this log entry.
+**What Claude did:**
+- `src/fetch_greenhouse.py`:
+  - Uses `requests` and `PyYAML`, plus `python-dotenv` to read `HTTP_USER_AGENT` and
+    `GREENHOUSE_BASE_URL` from `.env`. The base URL must be https.
+  - Retries only on 429/5xx, timeouts and connection errors. The retry budget is cumulative
+    per board. `Retry-After` accepts both seconds and HTTP-date values.
+  - Writes files atomically and refuses to overwrite: it writes a temporary file, then uses
+    `os.link`, which fails if the target already exists.
+  - Appends to the manifest only after the file is saved. Exit codes are 0 / 1 / 2.
+- `tests/test_fetch_greenhouse.py`: 42 tests using a fake session, a fake clock and a fake
+  sleep, so nothing touches the network and nothing really waits. `pytest.ini` puts `src/`
+  on the import path.
+- `requirements.txt` (requests, PyYAML, python-dotenv) and `requirements-dev.txt` (+ pytest).
+  Created `.venv` with Python 3.14.
+- Updated D1 and the §10 note in the contract (v0.2.1), the README, and the checklist.
+**Design choices to review:**
+- An empty `jobs` list counts as a successful snapshot and is flagged "0 jobs". A board can
+  legitimately have no openings.
+- Board tokens are compared case-insensitively when checking for duplicates.
+- If the newest cached file is corrupted, the fetcher falls back to the newest **valid**
+  older snapshot for that board. It refetches only if none is valid. The corrupted file is
+  left untouched.
+- If the snapshot folder for the current second already exists, the run aborts before
+  making any requests.
+- Only successful responses go into the manifest, so `http_status` is always 200 there.
+  Failures appear in the run summary only.
+**What we checked / changed:** *(team to fill in after review)*
+**Outcome / lessons:** 42/42 tests pass. A CLI dry run and a normal run against the empty
+shipped config both print the "No boards configured" message and exit 0 without touching
+the network.
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

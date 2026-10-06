@@ -58,9 +58,12 @@ Items are sorted into three groups by how firmly the brief states them:
   - [x] Local Git repo initialized with project structure
   - [ ] Create the shared remote (e.g. GitHub) and add teammates
 - [ ] **[SAMPLE]** Collect a corpus of job postings from approved public sources.
-  - [ ] Pick the list of Greenhouse board tokens (companies) and store it in `config/`
-  - [ ] Write a fetcher that saves untouched JSON responses to timestamped snapshots in
-        `data/raw/` (see data contract §10)
+  - [ ] Pick the list of Greenhouse board tokens (companies) and add it to
+        `config/boards.yaml` (currently an empty draft, pending Section A)
+  - [x] Write a fetcher that saves untouched JSON responses to timestamped snapshots in
+        `data/raw/` (see data contract §10): `src/fetch_greenhouse.py`, tested with mocked
+        responses only
+  - [ ] First real fetch (not yet run)
   - [ ] Record each snapshot in `data/raw_manifest.csv` and archive it to the agreed shared location
 - [ ] **[SAMPLE]** Load the postings into a **shared database**.
   - [ ] Agree the shared database engine and location with Section A (data contract D3).

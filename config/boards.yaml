@@ -1,0 +1,24 @@
+# Greenhouse job boards to snapshot.
+#
+# STATUS: DRAFT, pending agreement with Section A (docs/data_contract.md, D2).
+# Both sections must build from the same board list and the same canonical snapshot.
+#
+# Fields per board:
+#   board_token      (required) Greenhouse board token, i.e. the {board_token} in
+#                    https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs
+#                    Letters, digits, "-" and "_" only. Must be unique.
+#   company_name     (required) Human-readable company name.
+#   industry         (optional) Industry label. Greenhouse has no industry field,
+#                    so this is assigned by the team.
+#   industry_source  (required if industry is set) Where the label came from, so the
+#                    method can be documented in the exploration notebook.
+#
+# Example (commented out; no boards have been agreed yet):
+#
+# boards:
+#   - board_token: examplecompany
+#     company_name: Example Company, Inc.
+#     industry: Software
+#     industry_source: manual, from the company's own "About" page
+
+boards: []

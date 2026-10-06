@@ -14,7 +14,7 @@ Field notes use these labels:
 
 | # | Decision | Section B proposal |
 |---|---|---|
-| D1 | Shared posting source | Greenhouse Job Board API (pending instructor approval) |
+| D1 | Shared posting source | Greenhouse Job Board API (public, official API). Confirm with the instructor only if the team is unsure whether it is permitted (brief p.5) |
 | D2 | Board (company) list and snapshot date | One shared `config/boards.yaml`, frozen on an agreed date |
 | D3 | Shared database engine and location | **Pending agreement with Section A.** SQLite/DuckDB are fine for local development, but each copy is a separate file and is not shared automatically, so they do not satisfy the "shared database" deliverable on their own |
 | D8 | Raw snapshot storage and sharing | See §10. The shared storage location is still to be agreed |
@@ -145,6 +145,9 @@ Raw API responses are excluded from Git (`data/raw/*`), so they are preserved li
 - **Manifest (tracked in Git):** `data/raw_manifest.csv` with one row per file:
   `snapshot_id, board_token, file_path, fetched_at, http_status, job_count, sha256, bytes`.
   Anyone can check that their local copy matches the canonical one by comparing hashes.
+  Only successful responses (HTTP 200 with a valid `jobs` list) are written and recorded.
+  Failed responses are reported by the fetcher and never stored. Implemented in
+  `src/fetch_greenhouse.py`.
 - **Sharing:** each completed snapshot is archived (`{snapshot_id}.tar.gz`) and uploaded to
   one agreed shared location, for example a university-managed drive folder or a private
   GitHub Release asset. **The location is to be agreed with Section A (D8).** Nobody should
@@ -155,6 +158,8 @@ Raw API responses are excluded from Git (`data/raw/*`), so they are preserved li
 Canonical snapshot: *not yet fetched*.
 
 ### Changelog
+- v0.2.1: D1 no longer says instructor approval is unconditionally pending. §10 notes that
+  only successful responses are stored.
 - v0.2: `statement_id` now includes `run_id`. The shared DB engine/location is pending
   (SQLite/DuckDB are local-dev only). Added `snapshot_id` to postings, §10 on raw snapshot
   preservation, and decision D8.
