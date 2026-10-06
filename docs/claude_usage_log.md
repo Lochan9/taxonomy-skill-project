@@ -388,6 +388,125 @@ API". I corrected it to also mention the careers-page and ESCO documentation fet
 during development.
 **What we checked / changed:** *(team to fill in after review)*
 
+## Sprint 2
+
+### 2026-10-06 — Annotation preparation (Sprint 2, Team B)
+**Goal:** Commit the Sprint 1 docs. Then prepare human skill annotation: guidelines, a
+reproducible 100-posting selection with a 20/80 split, a local annotation workflow and
+validation. No LLM, no extraction, no ESCO mapping, no Team A work.
+**What Claude did:**
+- Committed `72b703d`, with the policy still marked proposed.
+- Re-read the brief. Its Sprint 2 task is "Hand-label 100 postings to measure extraction
+  precision/recall", so the 20/80 split is marked **proposed**, and P/R on all 100 stays
+  possible.
+- Inspected the strata fields before designing the selection: employer, title-based
+  seniority, employer-specific departments, `internal_job_id`, location, word count, and
+  the Sprint 1 candidate pairs. Found 411 related-posting groups (38 multi-member). The new
+  base-title rule also catches Figma's location-suffixed variants that the Sprint 1
+  detector missed. All 30 candidate pairs fall inside groups.
+- `src/select_annotation_set.py`:
+  - one seeded representative per group
+  - balanced employer quotas
+  - seniority minimums and a department-variety preference
+  - a largest-remainder 20/80 split
+  - a frozen manifest with `clean_text` SHA-256, plus `--check` and overwrite protection
+- `src/annotations.py`:
+  - exports byte-identical texts (git-ignored) and empty templates
+  - per-annotator folders, and a `locate` offset helper
+  - a validator with file, line and field errors, and an offset hint
+  - zero-skill vs unfinished status
+  - `compare` for adjudication
+- `docs/skill_annotation_guidelines.md` v0.1:
+  - examples are taken only from postings outside the selection *and its groups*, so the
+    guidelines don't leak evaluation postings
+  - all 28 example offsets were computed, round-trip checked, and checked against their
+    section headings
+- 27 new tests (204 in total).
+**Checks:** the DB SHA-256 is unchanged after selection, export and validation; the raw
+files are unchanged; the 100 exported texts match the manifest hashes.
+**What we checked / changed:** *(team to fill in after review)*
+**Not done:** no annotations; the split is not approved; no extraction.
+
+### 2026-10-06 — Guideline corrections: alternatives and skills inside duties (Sprint 2)
+**Goal:** Correct two issues the team found in review:
+1. "Go or Python" split into two records read as *both* required.
+2. The guidelines excluded duties wholesale, which would miss skills stated in
+   responsibilities.
+
+**Corrections requested and applied:**
+1. **Alternatives:**
+   - Added an optional `alternative_group_id` to `skills.csv`, after
+     `required_or_preferred`, and regenerated the empty template.
+   - Validation: a group needs at least 2 records, a valid id format, one posting only, one
+     shared `required_or_preferred`, and no repeated skill.
+   - `compare` now counts alternative-grouping disagreements, and the validation summary
+     counts groups.
+   - Guidelines §3b explains that skills joined by "and" are never grouped. Examples: Go/Python,
+     Kafka/"similar data streaming technologies", C++/Go, NX/Solidworks (with 3D CAD outside
+     the group), and AWS "(or similar cloud platforms)" as a borderline case.
+   - Data contract §12 (v0.5.1) documents the field and proposes it for extractor output too.
+2. **Skills within duties:**
+   - Replaced the "Duty / task" exclusion with "Task-only statement".
+   - Added §3a: annotate abilities, methods, tools and knowledge that a duty explicitly
+     expresses; don't annotate the task or infer implied skills.
+   - New pilot examples, all from postings outside the frozen set and its groups:
+     - positive: *revenue forecasting* and *Salesforce* (Figma SMB AE), *Kotlin*
+       (Duolingo Android)
+     - negative: Oura's "Build a lot of prototypes…" and "Drive product development…",
+       Figma's "Manage a 360 deal cycle…"
+     - borderline: "outbound prospect"
+   - It also shows how a duty mention and a requirements mention of the same skill collapse
+     into one `required` record.
+
+**Unchanged:** the frozen manifest (`--check` OK); evidence offsets and
+`required_or_preferred`; no labels filled in. All new example offsets were round-trip
+checked against `clean_text`. 8 new tests (212 in total, all passing).
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-06 — Guideline corrections: actions as skills, illustrative lists (Sprint 2)
+**Goal:** Fix two remaining guideline issues found in review:
+1. The guidelines required a skill noun, so "Build prototypes" was a negative example
+   even though it states *prototyping*.
+2. "languages such as C++ or Go" was treated as an alternative set, although it is an
+   illustrative list.
+
+**Corrections requested and applied (guidelines v0.2.1):**
+1. **Explicit actions:**
+   - §1, §3a and §6 now allow a faithful normalisation of an ability stated as a verb
+     phrase. §3a gives a four-point test (same concept, same breadth, only qualifiers
+     dropped, reproducible) plus inference counter-examples ("supplier management",
+     "negotiation").
+   - Re-reviewed every duty example. Added *prototyping* (one `required` record at
+     Oura's "Prototyping" requirement), *mentoring* (Duolingo Android, `preferred`),
+     *Android application development* and *mechanical design*. Moved "Manage a 360 deal
+     cycle" and "Drive product development…" from negative to borderline. The §2 task-only
+     examples are now "Own sales activity" and "Work to develop and circulate best
+     practices…".
+   - §7: the strongest mention (required > preferred > unspecified) sets both the value
+     and the evidence location.
+2. **Alternatives vs illustrative lists:**
+   - §3b separates alternative requirements ("X or Y", "X or similar Y") from illustrative
+     lists ("such as", "like", "e.g.", "including"). Default for the latter: record the
+     category if it is a skill, record each named example ungrouped, and add
+     `DISCUSS: illustrative list`.
+   - Applied to the examples: Figma C++/Go (no longer `alt-1`), Figma ML libraries
+     (PyTorch, TensorFlow, …), and Robinhood "technologies like Postgres, …, and AWS".
+   - New borderline cases for calibration: "3D CAD (NX or Solidworks)", "mentoring or
+     leading others", "search relevance, ranking, NLP, or RAG systems", "set technical
+     direction", "Kotlin on Android", "build a strong pipeline", "break them, and iterate
+     quickly".
+- Version references in `docs/sprint2_checklist.md` and the preparation report updated.
+
+**Tests:** 3 new tests (215 in total, all passing). Two synthetic tests show that a
+normalised statement and ungrouped illustrative examples both validate. One test checks
+all 62 offsets quoted in §9 against the local pilot `clean_text`, checks that each is quoted
+in the guidelines, and checks that no example posting is in the selection or its groups. It
+is skipped when the local DB is absent. This test found a straight apostrophe in the quoted
+"A Bachelor’s degree…" negative example; it is now curly, as in `clean_text`.
+**Unchanged:** the frozen manifest (`--check` OK, SHA-256 unchanged), the DB, the
+validator code and templates. No labels filled in.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

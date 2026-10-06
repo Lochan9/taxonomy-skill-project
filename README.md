@@ -33,8 +33,10 @@ notebooks/         Exploration and evaluation notebooks
 reports/           Sprint reports (incl. LLM token usage)
 sql/               Versioned local-dev schema (schema_v1.sql) and migrations (migration_002_esco_reference.sql)
 src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py, load_postings.py,
-                   derive_features.py, register_esco_archive.py, load_esco.py)
+                   derive_features.py, register_esco_archive.py, load_esco.py,
+                   select_annotation_set.py, annotations.py)
 data/reference_manifest.csv  Reference-data file hashes (tracked; created on first registration)
+data/annotation/   Sprint 2 annotation set: manifest, templates, human labels (tracked); texts/ (git-ignored)
 tests/             pytest suite (mocked HTTP)
 ```
 
@@ -190,6 +192,29 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/sprint1_exploratio
   - `reports/sprint1_exploration_metrics.json`
 - **Integrity check:** the notebook hashes the database and raw snapshot before and after,
   and fails if anything changed.
+
+## Sprint 2 preparation: human skill annotation (Team B)
+
+**Status:** the selection is frozen and the workflow is ready. **No annotations exist yet**
+(no gold labels, no LLM pre-labelling). See `reports/sprint2_annotation_preparation.md` and
+`docs/skill_annotation_guidelines.md`.
+
+```bash
+# 100 usable postings: 20 development + 80 evaluation (the split is PROPOSED), seed 20261006
+python src/select_annotation_set.py --db data/processed/taxonomy_pilot.sqlite --snapshot 20261006T171338Z --check
+python src/annotations.py export   --db data/processed/taxonomy_pilot.sqlite   # texts (git-ignored) + templates
+python src/annotations.py init     --annotator <id>
+python src/annotations.py locate   --db data/processed/taxonomy_pilot.sqlite --posting <posting_id> --text "exact phrase"
+python src/annotations.py validate --db data/processed/taxonomy_pilot.sqlite --dir data/annotation/sprint2_v1/annotators/<id>
+python src/annotations.py compare  --db data/processed/taxonomy_pilot.sqlite --a <id1> --b <id2>
+```
+
+- **Offsets:** zero-based Python character positions into the unchanged `clean_text`, end
+  exclusive.
+- **Zero-skill postings:** a posting with `review_status = reviewed` and no skill rows is a
+  deliberate zero-skill posting, not an unfinished one.
+- **Tracked files:** the manifest, the templates and all human CSVs. The exported texts
+  are not tracked.
 
 ## Reference data: ESCO (Section B)
 

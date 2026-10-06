@@ -48,3 +48,6 @@ cache/
 Thumbs.db
 .idea/
 .vscode/
+
+# --- Annotation: exported posting texts are regenerable from the DB (labels ARE tracked) ---
+data/annotation/*/texts/

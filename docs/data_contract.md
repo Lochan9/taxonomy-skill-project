@@ -1,6 +1,6 @@
-# Shared Data Contract (DRAFT v0.4)
+# Shared Data Contract (DRAFT v0.5.1)
 
-**Status:** Draft v0.4 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
+**Status:** Draft v0.5.1 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
 **Required by:** the end of Sprint 1. The brief says "Both groups must agree on a shared schema
 in Sprint 1 so that Sprint 5 can join the taxonomies without rework" (p.5).
 
@@ -225,7 +225,36 @@ This is a reference implementation of §2, **not** the shared database (D3 is st
     `cleaning_version` for the same snapshot. Reloading a snapshot under new cleaning rules
     therefore needs a new database or a future schema version. This is an open design point.
 
+## 12. Human annotation records (Section B, Sprint 2) [PROP]
+
+These are gold labels for measuring extraction, kept **separate** from `statements` (§3),
+which holds extractor output. They live as tracked CSVs under `data/annotation/{set}/`, not
+in the DB.
+
+- **`selection_manifest.csv`:** one row per selected posting: `snapshot_id`, `posting_id`,
+  `split` (development | evaluation), `group_id`, `group_size`, `group_basis`,
+  `group_members`, `clean_text_sha256`, `seed`, `selection_version`, plus descriptive
+  columns.
+- **`postings_review.csv`:** `snapshot_id`, `posting_id`, `split`, `review_status`
+  (not_started | in_progress | reviewed), `annotator_id`, `reviewed_at`, `review_notes`.
+  `reviewed` with no skill rows means *zero skills*, not missing.
+- **`skills.csv`:** `snapshot_id`, `posting_id`, `annotation_id`, `skill_statement`,
+  `evidence_text`, `evidence_start`, `evidence_end`, `required_or_preferred` (required |
+  preferred | unspecified), `alternative_group_id` (optional), `skill_category` (optional),
+  `annotator_id`, `review_notes`.
+  - `alternative_group_id`: records in one posting that share it are **alternatives**
+    ("Go or Python" means at least one is needed). The group shares one
+    `required_or_preferred`. Skills joined by "and" are never grouped. **[PROP]** The same
+    field is suggested for extractor output in `statements`, so P/R can treat alternatives
+    consistently.
+- **Offset convention:** zero-based Python character offsets into the unchanged
+  `clean_text` of (`snapshot_id`, `posting_id`), end exclusive. **Proposed as the shared
+  convention for `statements.source_span` offsets too**, so extractor output and gold can
+  be matched by span. Section A may want the same rule for task annotations.
+
 ### Changelog
+- v0.5.1: §12 adds an optional `alternative_group_id` (alternatives such as "Go or Python").
+- v0.5: Added §12 human annotation records (Team B Sprint 2 gold labels) and a proposed shared character-offset convention. Shared decisions D1–D3, D8 and D10 remain open.
 - v0.4: ESCO v1.2.1 reference tables defined from the real headers and implemented in local-dev SQLite (§8). D9 updated. O*NET remains a shared dependency (D10, owner not agreed).
 - v0.3.2: Added D9 (ESCO version proposal: v1.2.1 en CSV) and D10 (O*NET as a shared dependency, owner not agreed). §8 records the ESCO acquisition status: registration tool and manifest exist; tables wait for the real headers.
 - v0.3.1: Added §11 describing Section B's local-dev SQLite implementation. D3 is still pending.
