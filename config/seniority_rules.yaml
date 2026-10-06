@@ -1,0 +1,81 @@
+# Rule-based seniority classification from job titles (Sprint 1, pilot).
+#
+# Applied by src/derive_features.py. Rules are evaluated IN ORDER and the FIRST rule
+# whose `patterns` match (and whose `exclude` patterns do not) sets the label. Every
+# other rule that would also have matched is recorded as `other_matches` for review.
+# Patterns are case-insensitive Python regular expressions applied to the title.
+#
+# Labels describe the seniority signalled by the TITLE WORDING only. They are not verified
+# levels: companies use titles differently, "manager" does not prove people management,
+# and titles without a marker are "unknown" (we do not assume "mid-level").
+#
+# Bump `version` whenever a rule changes; it is stored with every derived row.
+
+version: "0.1.0"
+
+labels:
+  - intern
+  - entry
+  - mid
+  - senior
+  - staff_principal
+  - manager
+  - director
+  - executive
+  - ambiguous
+  - unknown
+
+rules:
+  - id: intern
+    label: intern
+    patterns: ['\bintern(s|ship)?\b', '\bco-?op\b', '\bapprentice(ship)?\b']
+
+  - id: explicit_level_range
+    label: ambiguous
+    # A title that deliberately spans levels, e.g. "Senior/Software Engineer II".
+    patterns: ['\bsenior\s*/\s*\w+', '\w+\s*/\s*senior\b', '\b(i|ii|iii)\s*/\s*(ii|iii|iv)\b']
+
+  - id: executive
+    label: executive
+    patterns: ['\bchief\b.*\bofficer\b', '\b(ceo|cfo|cto|coo|cpo|cmo|ciso)\b', '\bvp\b',
+               '\b(s|e)vp\b', '\bvice president\b', '\bpresident\b']
+    # "Executive Assistant, Chief People Officer" supports an executive but is not one.
+    exclude: ['\bassistant\b']
+
+  - id: director
+    label: director
+    patterns: ['\bdirector\b', '\bhead of\b']
+    # Role names rather than levels; fall through to later markers (e.g. "Senior").
+    exclude: ['\b(art|creative)\s+director\b']
+
+  - id: staff_principal
+    label: staff_principal
+    patterns: ['\bstaff\b', '\bprincipal\b', '\bdistinguished\b']
+    exclude: ['\bstaff accountant\b']
+
+  - id: manager
+    label: manager
+    patterns: ['\bmanager\b', '\bmanaging\b']
+    # Common individual-contributor role names that contain "manager"; fall through.
+    exclude: ['\b(product|program|project|account|partner|enablement|marketing|success|community)\s+manager\b']
+
+  - id: senior
+    label: senior
+    patterns: ['\bsenior\b', '\bsr\b\.?']
+
+  - id: mid
+    label: mid
+    patterns: ['\bii\b', '\bmid[- ]level\b', '\bintermediate\b']
+
+  - id: entry
+    label: entry
+    patterns: ['\bjunior\b', '\bjr\b\.?', '\bentry[- ]level\b', '\bnew grad(uate)?\b',
+               '\bgraduate\b', '\bearly career\b', '\bassociate\b',
+               '\b(engineer|analyst|scientist|developer|specialist) i\b']
+
+  - id: lead
+    label: ambiguous
+    # "Lead" can mean a senior individual contributor or a team manager.
+    patterns: ['\blead\b']
+
+default_label: unknown

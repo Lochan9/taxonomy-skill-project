@@ -237,6 +237,57 @@ Verify the counts against the JSONL.
 - A rebuilt DB is equivalent, not byte-identical, because the load timestamps differ.
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-06 — Pilot exploratory analysis (Sprint 1)
+**Goal:** Commit the loader, then explore the pilot. Requirements: a read-only DB with every
+query filtered to the snapshot; rule-based seniority; local language detection;
+near-duplicate candidates; charts and a findings report. No skill extraction.
+**Prompt (summary):** Commit as "Add local SQLite posting loader". Build
+`notebooks/sprint1_exploration.ipynb` with counts, employer concentration, departments and
+locations, word counts, missing fields, exact duplicates vs repeated titles, and
+placeholders, using clear all-row and usable-row denominators. Seniority rules go in config,
+with derived results stored separately. Language detection must be local (no LLM or API) and
+must record the detector version and uncertain rows. Near-duplicate candidate pairs: all
+pairs within same-board groups, labelled as candidates. Write
+`reports/sprint1_exploration.md`, install the dependencies, execute the notebook, and verify
+that nothing changed.
+**What Claude did:**
+- Committed `9a3d16e`.
+- Looked at real titles before writing any rules. That surfaced several traps: "Account
+  Executive" (sales), "Executive Assistant, Chief …", "Creative/Art Director" (role names),
+  IC "Product/Program Manager", and "Senior/Software Engineer II" (a level range). These
+  were encoded in `config/seniority_rules.yaml` as ordered rules with excludes. Labels
+  include `unknown` and `ambiguous`, and `other_matches` is kept for review.
+- `src/derive_features.py` opens SQLite with `mode=ro` and writes seniority and language
+  CSVs to `data/processed/derived/` and candidate pairs to `reports/`. 43 tests were added
+  (139 in total, all passing).
+- Language: chose `lingua-language-detector` 2.2.0, which is offline, about 0.4 s and
+  190 MB for the pilot.
+- Charts: loaded the dataviz guidance first. All charts are single-series, one hue, with
+  thin horizontal bars, ink labels and hairline grids. I rendered and viewed every PNG.
+- The notebook hashes the DB and raw files before and after, and asserts they are equal. It
+  executed 18/18 cells with no errors.
+**Corrections made during the session:**
+- **Language detector:** a test showed lingua's whole-text label can follow the
+  *minority* language with confidence 1.0 (6 English paragraphs + 1 French → "fr"). The
+  detection was redesigned: the label is now the paragraph word-majority, the whole-text
+  result is stored separately, and any disagreement or other-language paragraph marks the
+  row uncertain.
+- **Test fix:** one test of mine expected a candidate pair between two rows that share
+  neither a title nor an internal ID. The code was right and the test was wrong, so I
+  rewrote the test to exercise a real title-based pair.
+- **Chart layout:** viewing the rendered charts showed the footnote colliding with the
+  x-axis ticks and overlapping dots on the similarity chart. Both were fixed and checked
+  again.
+**Manual inspection:** a 20-title seniority sample plus all 34 multi-match titles; a 12-row
+language sample; and all 43 postings located in non-English markets. The only non-ASCII
+letter among those 43 is the "ã" in "São Paulo".
+**What we checked / changed:** *(team to fill in after review)*
+**Outcome / lessons:** No LLM tokens used. Key findings: 68% of usable rows come from two
+employers; 34% of titles are seniority `unknown`; all postings are English; there are 0 exact
+duplicates but 9 candidate pairs at ≥ 0.99 similarity (location variants); and Duolingo has
+one requisition posted under two titles. Lesson: render and look at the charts, and treat a
+detector's confidence score as a claim to test rather than a fact.
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

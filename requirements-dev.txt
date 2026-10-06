@@ -1,2 +1,9 @@
 -r requirements.txt
 pytest>=8.0,<10
+# Exploration notebook (notebooks/sprint1_exploration.ipynb)
+pandas>=3.0,<4
+matplotlib>=3.10,<4
+nbformat>=5.10,<6
+nbclient>=0.10,<1
+nbconvert>=7.16,<8
+ipykernel>=7.0,<8

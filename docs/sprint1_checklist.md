@@ -83,17 +83,21 @@ Items are sorted into three groups by how firmly the brief states them:
   - [ ] O*NET skills and occupation–skill links (needed for the Sprint 5 join)
   - [ ] **[REC]** Lightcast Open Skills as well. The brief names it as a Section B reference
         (*p.2, p.5*), but Sprint 1 only lists O*NET and ESCO.
-- [ ] **[SAMPLE]** Generate summary statistics with Claude Code:
-  - [ ] Postings by industry
-  - [ ] Postings by seniority
-  - [ ] Posting length distribution
-  - [ ] Duplicate rate
-  - [ ] Language mix
+- [ ] **[SAMPLE]** Generate summary statistics with Claude Code. **Done for the pilot
+      only** (`notebooks/sprint1_exploration.ipynb`, `reports/sprint1_exploration.md`). The
+      items stay open until the agreed corpus is collected and analysed.
+  - [ ] Postings by industry (pilot: done, but industry = employer, team-assigned)
+  - [ ] Postings by seniority (pilot: rule-based from titles, rules v0.1.0; 34% `unknown`)
+  - [ ] Posting length distribution (pilot: median 927 words, usable rows)
+  - [ ] Duplicate rate (pilot: 0% exact. The near-duplicate policy is still undecided)
+  - [ ] Language mix (pilot: 470/470 detected `en`, 0 uncertain, 0 disagreements)
 - [ ] **[SAMPLE]** Agree the shared schema with Section A (required anyway; see §2).
 
 ### Sample deliverable (*p.3*)
 - [ ] Populated database
-- [ ] Data exploration notebook (`notebooks/`) with documented findings
+- [ ] Data exploration notebook (`notebooks/`) with documented findings. A pilot version
+      exists and is executed (`notebooks/sprint1_exploration.ipynb`). It must be re-run on
+      the agreed corpus.
 - [ ] Agreed data contract (**[REQ]**, see §2)
 
 ## 4. Greenhouse-specific points to resolve (*team*)
@@ -104,6 +108,10 @@ responses during exploration.
 - [ ] **[REC]** Greenhouse has no `industry` or `seniority` fields. Decide how to derive them
       (e.g. a manual industry label per board in `config/`, and seniority rules applied to titles)
       and document the method in the notebook.
+  - [x] Pilot: industry is team-assigned per board (`config/boards.yaml`). Seniority uses
+        ordered title rules (`config/seniority_rules.yaml`) with `unknown` and `ambiguous`
+        labels. Results are stored in `data/processed/derived/`, not in `postings`.
+  - [ ] Agree both methods with Section A, and review the rules on the full corpus
 - [x] **[REC]** `content` is HTML (entity-escaped). Keep the raw HTML and store a cleaned
       plain-text version alongside it. Done for the pilot in `src/prepare_postings.py`
       (`raw_text` + `clean_text`, with paragraph and bullet boundaries kept).
@@ -115,12 +123,22 @@ responses during exploration.
   - [ ] Near-duplicates: 13 same-title groups differ only slightly (similarity up to 0.998;
         mostly location or salary variants). They are not flagged yet. Decide on handling
         before computing the duplicate rate and before extraction.
+    - [x] Candidate export: 30 within-board pairs (shared `internal_job_id` or title, all
+          pairs compared), 9 of them at ≥ 0.99 similarity. See
+          `reports/sprint1_near_duplicate_candidates_20261006T171338Z.csv`. These are
+          candidates only; nothing is excluded, and detection is incomplete (e.g. Figma
+          location-suffixed titles are not grouped).
+    - [ ] Decide the policy
   - [ ] Across repeated fetches (only one snapshot so far)
 - [x] **[REC]** Placeholder / talent-pool postings: flagged and kept for audit (pilot: 2,
       both Recursion). The rules are heuristic; review them on the full corpus.
 - [ ] **[REC]** Language mix: detect the language per posting, then decide whether to filter
       to English or keep all languages. (`source_language` is employer-set, all `en` in the
-      pilot. No detection has been done yet.)
+      pilot.)
+  - [x] Local detection (lingua 2.2.0, no LLM or API), stored separately from
+        `source_language`. Pilot: 470/470 `en`, 0 uncertain, 0 disagreements, and a manual
+        check of 43 non-US-location postings.
+  - [ ] Decide the English-only vs multilingual scope with Section A (contract D6)
 - [ ] **[REC]** Rate limiting and caching: send polite requests (small delay, descriptive
       User-Agent). Reuse cached snapshots by default. Allow an explicit refresh that saves a
       **new** timestamped snapshot and never overwrites an existing one.

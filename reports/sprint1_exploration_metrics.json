@@ -1,0 +1,58 @@
+{
+  "snapshot_id": "20261006T171338Z",
+  "all_rows": 470,
+  "usable_rows": 468,
+  "flagged_rows": 2,
+  "placeholders": 2,
+  "exact_duplicates": 0,
+  "rows_with_text": 470,
+  "repeated_title_groups": 13,
+  "repeated_title_rows": 27,
+  "employer_usable": {
+    "Figma": 159,
+    "Robinhood": 159,
+    "Oura": 80,
+    "Duolingo": 60,
+    "Recursion Pharmaceuticals": 10
+  },
+  "top2_usable_share": 0.6795,
+  "hhi_usable": 0.277,
+  "word_count_usable_median": 927.0,
+  "word_count_usable_min": 492,
+  "word_count_usable_max": 1665,
+  "missing_fields": {
+    "internal_job_id": 2,
+    "departments": 2,
+    "offices": 2
+  },
+  "distinct_locations": 63,
+  "multi_location_rows": 212,
+  "remote_rows": 35,
+  "distinct_departments": 96,
+  "seniority_usable": {
+    "intern": 36,
+    "entry": 2,
+    "mid": 2,
+    "senior": 101,
+    "staff_principal": 48,
+    "manager": 68,
+    "director": 32,
+    "executive": 6,
+    "ambiguous": 14,
+    "unknown": 159
+  },
+  "language_detected": {
+    "en": 470
+  },
+  "language_uncertain": 0,
+  "language_disagreements": 0,
+  "detector": "lingua-language-detector 2.2.0",
+  "seniority_rules_version": "0.1.0",
+  "near_duplicate_candidate_pairs": 30,
+  "near_duplicate_pairs_ge_0_99": 9,
+  "near_duplicate_pairs_by_basis": {
+    "internal_job_id": 15,
+    "internal_job_id+title": 13,
+    "title": 2
+  }
+}

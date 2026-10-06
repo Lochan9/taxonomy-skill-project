@@ -14,7 +14,9 @@ collected on 2026-10-06; see `reports/sprint1_pilot_collection.md`. The board li
 pilot proposal pending Section A. Pilot text cleaning is implemented (`src/prepare_postings.py`):
 470 rows, 468 usable. See `reports/sprint1_cleaning_quality_20261006T171338Z.md`. The pilot
 is loaded into a **local development** SQLite database (`src/load_postings.py`); the shared
-database is still pending. No extraction exists yet. See `docs/sprint1_checklist.md`.
+database is still pending. A pilot exploration notebook is executed
+(`notebooks/sprint1_exploration.ipynb`; findings in `reports/sprint1_exploration.md`). No
+extraction exists yet. See `docs/sprint1_checklist.md`.
 
 ## Repository layout
 
@@ -28,7 +30,8 @@ docs/              Project brief, sprint checklists, data contract, Claude usage
 notebooks/         Exploration and evaluation notebooks
 reports/           Sprint reports (incl. LLM token usage)
 sql/               Versioned local-dev database schema (schema_v1.sql)
-src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py, load_postings.py)
+src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py, load_postings.py,
+                   derive_features.py)
 tests/             pytest suite (mocked HTTP)
 ```
 
@@ -43,7 +46,7 @@ cd taxonomy-skill-project
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt   # runtime deps + pytest
+python -m pip install -r requirements-dev.txt   # runtime deps + pytest + notebook tools
                                                 # (runtime only: requirements.txt)
 
 cp .env.example .env               # then fill in your own keys locally
@@ -156,6 +159,34 @@ python src/load_postings.py \
   database error.
 - Requires SQLite ≥ 3.37, which Python's bundled SQLite normally satisfies. The `.sqlite`
   file is git-ignored.
+
+## Exploration (pilot)
+
+Derived features are stored **separately** from the immutable `postings` table. The database
+is opened read-only (`mode=ro`).
+
+```bash
+# Seniority (rule-based), detected language (local lingua), near-duplicate candidate pairs
+python src/derive_features.py --db data/processed/taxonomy_pilot.sqlite --snapshot 20261006T171338Z
+
+# Execute the exploration notebook end to end (it also runs the derivation above)
+jupyter nbconvert --to notebook --execute --inplace notebooks/sprint1_exploration.ipynb
+```
+
+- **Seniority rules:** `config/seniority_rules.yaml`, ordered, first match wins. Labels
+  include `unknown` (no marker) and `ambiguous`. The rules version and SHA-256 are stored
+  with each derived row.
+- **Language:** the `lingua-language-detector` models ship inside the wheel, so detection
+  makes no network calls. `source_language` is kept separately from `detected_language`.
+  Uncertain rows are flagged with a reason.
+- **Outputs:**
+  - `data/processed/derived/{seniority,language}_{snapshot}.csv` (git-ignored)
+  - `reports/sprint1_near_duplicate_candidates_{snapshot}.csv` (candidates only; nothing is
+    excluded)
+  - `reports/figures/*.png`
+  - `reports/sprint1_exploration_metrics.json`
+- **Integrity check:** the notebook hashes the database and raw snapshot before and after,
+  and fails if anything changed.
 
 ## Data source
 
