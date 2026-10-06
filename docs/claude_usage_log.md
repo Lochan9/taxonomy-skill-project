@@ -139,6 +139,60 @@ and write `reports/sprint1_pilot_collection.md`. No push and no upload.
 - Recursion's board includes a placeholder "Don't see what you're looking for?" posting,
   which will need filtering.
 
+### 2026-10-06 — Pilot text cleaning (Sprint 1)
+**Goal:** Commit the pilot collection. Then turn snapshot `20261006T171338Z` into one
+cleaned row per posting with audit flags. No DB loading and no extraction.
+**Prompt (summary):** Commit as "Collect and validate Greenhouse pilot postings". Implement
+`src/prepare_postings.py` with the 24 listed columns. Requirements: raw data left unchanged;
+entity decoding and tag removal that keeps paragraph and bullet boundaries; stable IDs;
+flags for missing/empty and placeholder postings, with flagged rows kept; exact duplicates
+by normalized text, with repeated titles alone not counted as duplicates; source language
+preserved without claiming detection; consistent list serialization. Write JSONL and CSV
+plus a quality report, add focused tests, verify raw hashes, and report the results.
+**What Claude did:**
+- Committed `020c2eb`, confirming `.env`, `.venv` and raw files stay ignored.
+- Inspected the raw `content` first. It is **double-encoded**: escaped markup with entities
+  still inside after one unescape. The cleaner does one `html.unescape`, then a stdlib
+  `HTMLParser` that decodes the rest. It turns block tags into paragraph breaks and `<li>`
+  into `- ` bullets, indents nested lists, and drops iframe, script and style content.
+- Reused `load_config`, `read_manifest` and `verify_cached_file` from the fetcher. The cleaner
+  refuses to run if any raw file fails hash verification.
+- Duplicate canonical order: config board order, then ascending job id. Empty text gets no
+  hash, so empty rows are never duplicates of each other.
+- 24 new tests (66 total, all passing).
+**Corrections made during the session:**
+- The title-only placeholder rules missed Recursion's "Interested in an internship?", whose
+  text says "Join our Internship Talent Network!… we are currently not hiring interns". I
+  measured candidate description rules against the pilot before adding any. "Not hiring"
+  was rejected because it also matched a real Figma posting. I added two narrow phrases
+  ("join our … talent network/community/pool", "resume on file") with tests for real
+  descriptions that must not be flagged.
+- Exact duplicates came out at 0, but a similarity check found 13 same-title groups at up
+  to 0.998 similarity. A diff showed they differ only in location, salary or benefits lines.
+  These are reported in an informational section and are **not** flagged, as the task
+  required.
+**What we checked / changed:** *(team to fill in after review)*
+**Outcome / lessons:** 470 rows, 468 usable, 2 placeholders, 0 missing/empty, 0 exact
+duplicates. Raw hashes were unchanged after every run. Lesson: inspect the real encoding,
+and check the flag counts against the actual rows. Both corrections came from looking at
+the output rather than trusting the green test run.
+
+### 2026-10-06 — Contract alignment and company names (Sprint 1)
+**Goal:** Make data contract §2 match the cleaner's real output. Keep both the standardized
+and the source company names.
+**What Claude did:**
+- Added `source_company_name` (the API value) next to `company_name` (from config). Also
+  added a per-row `cleaning_version` (`0.1.0`) so the planned loader can record
+  cleaning provenance without guessing. The quality report gained a "Company names" table.
+  Two boards differ: Recursion ("Recursion" vs "Recursion Pharmaceuticals") and Oura (the
+  API says "Ōura").
+- Contract bumped to v0.3. §2 now lists all 26 output columns, with the new fields marked
+  as proposals. Stored rows are keyed by (`snapshot_id`, `posting_id`), and `statements`
+  gained `snapshot_id`. `source_language` replaces the detected `language`. `seniority` and
+  `detected_language` are now "planned".
+- Reprocessed the pilot: 470 rows, 468 usable, same as before. Raw hashes unchanged. 68 tests pass.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

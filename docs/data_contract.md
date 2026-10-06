@@ -1,6 +1,6 @@
-# Shared Data Contract (DRAFT v0.2)
+# Shared Data Contract (DRAFT v0.3)
 
-**Status:** Draft v0.2 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
+**Status:** Draft v0.3 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
 **Required by:** the end of Sprint 1. The brief says "Both groups must agree on a shared schema
 in Sprint 1 so that Sprint 5 can join the taxonomies without rework" (p.5).
 
@@ -38,34 +38,56 @@ Field notes use these labels:
 
 ## 2. `postings` — shared by both sections
 
+This section matches the columns `src/prepare_postings.py` actually produces (cleaning
+version `0.1.0`), in output order. **[NEW v0.3]** marks fields added in this version. Like
+every [PROP] field, they are proposals pending Section A.
+
+`posting_id` is the stable identifier of a posting across snapshots. Because the same posting
+can appear in several snapshots with different text, a stored row is identified by
+**(`snapshot_id`, `posting_id`)** **[NEW v0.3]**. This way a later snapshot never overwrites
+historical text. Downstream tables that need a specific version of a posting should
+reference the pair.
+
 | Column | Type | Notes |
 |---|---|---|
-| `posting_id` | TEXT PK | **[MIN]** Stable identifier |
+| `posting_id` | TEXT | **[MIN]** Stable identifier `greenhouse:{board_token}:{job_id}` |
 | `source` | TEXT | **[MIN]** e.g. `greenhouse` |
-| `raw_text` | TEXT | **[MIN]** Original `content` field, unmodified (HTML) |
-| `clean_text` | TEXT | [PROP] HTML-unescaped, tags stripped |
 | `source_job_id` | TEXT | [PROP] Greenhouse `id` |
+| `internal_job_id` | TEXT NULL | **[NEW v0.3]** Greenhouse `internal_job_id`. Can group postings of one requisition |
 | `board_token` | TEXT | [PROP] Company board identifier |
-| `company_name` | TEXT | [PROP] |
+| `company_name` | TEXT | [PROP] Standardized name from `config/boards.yaml` |
+| `source_company_name` | TEXT NULL | **[NEW v0.3]** The API's own `company_name`, unmodified (e.g. "Recursion", "Ōura") |
 | `title` | TEXT | [PROP] |
-| `location` | TEXT | [PROP] `location.name` |
-| `departments` | TEXT (JSON) | [PROP] |
+| `location` | TEXT NULL | [PROP] `location.name` |
+| `departments` | JSON array of TEXT | [PROP] Department names. Native array in JSONL, JSON-encoded text in CSV/SQL |
+| `offices` | JSON array of TEXT | **[NEW v0.3]** Office names, serialized the same way as `departments` |
+| `raw_text` | TEXT NULL | **[MIN]** Original `content` field, unmodified (entity-escaped HTML). NULL if the field is absent |
+| `clean_text` | TEXT | [PROP] Decoded plain text with paragraph breaks and `- ` bullets. Empty if there is no description |
 | `absolute_url` | TEXT | [PROP] Provenance link |
-| `source_updated_at` | TIMESTAMP | [PROP] Greenhouse `updated_at` |
-| `fetched_at` | TIMESTAMP | [PROP] |
-| `snapshot_id` | TEXT | [PROP] Raw snapshot the row was loaded from (§10) |
-| `industry` | TEXT | [PROP] Derived (Greenhouse has no industry field). Method to be documented |
-| `seniority` | TEXT | [PROP] Derived from the title. Method to be documented |
-| `language` | TEXT | [PROP] ISO 639-1, detected |
-| `text_hash` | TEXT | [PROP] Hash of `clean_text`, for duplicate detection |
-| `is_duplicate_of` | TEXT NULL | [PROP] `posting_id` of the canonical copy |
+| `source_updated_at` | TIMESTAMP | [PROP] Greenhouse `updated_at`, as given (with offset) |
+| `fetched_at` | TIMESTAMP | [PROP] From the raw manifest (UTC) |
+| `snapshot_id` | TEXT | [PROP] Raw snapshot the row came from (§10). Part of the storage key |
+| `industry` | TEXT NULL | [PROP] Team-assigned per board (Greenhouse has no industry field) |
+| `industry_source` | TEXT NULL | **[NEW v0.3]** Where the industry label came from |
+| `source_language` | TEXT NULL | **[NEW v0.3]** Greenhouse's employer-set `language` field. **Not detected** (replaces the v0.2 "detected `language`") |
+| `text_hash` | TEXT NULL | [PROP] SHA-256 of normalized `clean_text` (NFKC, casefold, whitespace collapsed). NULL if the text is empty |
+| `word_count` | INTEGER | **[NEW v0.3]** Tokens of `clean_text` that contain a letter or digit |
+| `is_placeholder` | BOOLEAN | **[NEW v0.3]** General-interest / talent-pool posting (heuristic) |
+| `exclusion_reason` | TEXT | **[NEW v0.3]** `;`-separated reasons (`missing_description`, `empty_description`, `placeholder_title:*`, `placeholder_text:*`, `exact_duplicate`). Empty string means usable. Flagged rows are kept |
+| `is_duplicate_of` | TEXT NULL | [PROP] `posting_id` of the canonical copy, for exact normalized-text duplicates within the snapshot |
+| `cleaning_version` | TEXT | **[NEW v0.3]** Version of the cleaning rules that produced the row |
+
+Planned but **not yet produced**: `seniority` (derived from the title) and
+`detected_language` (output of a language detector, kept separate from `source_language`).
+The methods are still to be documented.
 
 ## 3. `statements` — one row per extracted task or skill
 
 | Column | Type | Notes |
 |---|---|---|
 | `statement_id` | TEXT PK | |
-| `posting_id` | TEXT FK → postings | **[MIN]** Link back to the posting |
+| `posting_id` | TEXT | **[MIN]** Link back to the posting |
+| `snapshot_id` | TEXT | **[NEW v0.3]** With `posting_id`, an FK to the exact stored posting version the statement was extracted from |
 | `kind` | TEXT | **[MIN]** `task` or `skill` |
 | `text` | TEXT | **[MIN]** The atomic statement, normalized |
 | `source_span` | TEXT | [PROP] Original sentence or snippet it came from (evidence) |
@@ -158,6 +180,13 @@ Raw API responses are excluded from Git (`data/raw/*`), so they are preserved li
 Canonical snapshot: *not yet fetched*.
 
 ### Changelog
+- v0.3: §2 now matches the cleaner's actual output (cleaning version 0.1.0). Proposed new
+  fields, all pending Section A: `internal_job_id`, `source_company_name`, `offices`,
+  `industry_source`, `source_language` (replaces the detected `language`), `word_count`,
+  `is_placeholder`, `exclusion_reason` and `cleaning_version`. `departments` and `offices`
+  are typed as JSON arrays of names. Stored rows are keyed by (`snapshot_id`, `posting_id`).
+  `seniority` and `detected_language` are moved to "planned". `statements` gains
+  `snapshot_id`, so (`snapshot_id`, `posting_id`) references a stored posting version.
 - v0.2.1: D1 no longer says instructor approval is unconditionally pending. §10 notes that
   only successful responses are stored.
 - v0.2: `statement_id` now includes `run_id`. The shared DB engine/location is pending

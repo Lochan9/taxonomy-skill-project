@@ -100,13 +100,23 @@ responses during exploration.
 - [ ] **[REC]** Greenhouse has no `industry` or `seniority` fields. Decide how to derive them
       (e.g. a manual industry label per board in `config/`, and seniority rules applied to titles)
       and document the method in the notebook.
-- [ ] **[REC]** `content` is HTML (entity-escaped). Keep the raw HTML and store a cleaned
-      plain-text version alongside it.
-- [ ] **[REC]** Posting ID scheme: `greenhouse:{board_token}:{job_id}` (proposed in the contract).
+- [x] **[REC]** `content` is HTML (entity-escaped). Keep the raw HTML and store a cleaned
+      plain-text version alongside it. Done for the pilot in `src/prepare_postings.py`
+      (`raw_text` + `clean_text`, with paragraph and bullet boundaries kept).
+- [x] **[REC]** Posting ID scheme: `greenhouse:{board_token}:{job_id}`. Implemented. The
+      scheme is still a proposal until the contract is agreed.
 - [ ] **[REC]** Duplicates: check exact and near-duplicate text across boards and across
       repeated fetches. Record `fetched_at` so snapshots can be compared.
+  - [x] Exact duplicates (normalized text) for the pilot: 0
+  - [ ] Near-duplicates: 13 same-title groups differ only slightly (similarity up to 0.998;
+        mostly location or salary variants). They are not flagged yet. Decide on handling
+        before computing the duplicate rate and before extraction.
+  - [ ] Across repeated fetches (only one snapshot so far)
+- [x] **[REC]** Placeholder / talent-pool postings: flagged and kept for audit (pilot: 2,
+      both Recursion). The rules are heuristic; review them on the full corpus.
 - [ ] **[REC]** Language mix: detect the language per posting, then decide whether to filter
-      to English or keep all languages.
+      to English or keep all languages. (`source_language` is employer-set, all `en` in the
+      pilot. No detection has been done yet.)
 - [ ] **[REC]** Rate limiting and caching: send polite requests (small delay, descriptive
       User-Agent). Reuse cached snapshots by default. Allow an explicit refresh that saves a
       **new** timestamped snapshot and never overwrites an existing one.

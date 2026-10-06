@@ -11,8 +11,9 @@ Job postings come from the **Greenhouse Job Board API** (public, read-only endpo
 **Current status:** Sprint 1 (Data Acquisition & Exploration), in progress. The snapshot
 fetcher is implemented and tested. A **pilot** snapshot (5 boards, 470 postings) was
 collected on 2026-10-06; see `reports/sprint1_pilot_collection.md`. The board list is a
-pilot proposal pending Section A. No cleaning, database loading or extraction exists yet.
-See `docs/sprint1_checklist.md`.
+pilot proposal pending Section A. Pilot text cleaning is implemented (`src/prepare_postings.py`):
+470 rows, 468 usable. See `reports/sprint1_cleaning_quality_20261006T171338Z.md`. No database
+loading or extraction exists yet. See `docs/sprint1_checklist.md`.
 
 ## Repository layout
 
@@ -25,7 +26,7 @@ data/reference/    ESCO, Lightcast, O*NET downloads (git-ignored)
 docs/              Project brief, sprint checklists, data contract, Claude usage log
 notebooks/         Exploration and evaluation notebooks
 reports/           Sprint reports (incl. LLM token usage)
-src/               Pipeline source code (fetch_greenhouse.py)
+src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py)
 tests/             pytest suite (mocked HTTP)
 ```
 
@@ -98,6 +99,35 @@ How the fetcher behaves:
 Greenhouse Job Board GET endpoints need no key. Keys are only needed for an LLM provider if
 the pipeline later uses one (e.g. `ANTHROPIC_API_KEY` for the university-provided Anthropic
 access, or a free-tier provider).
+
+## Preparing (cleaning) postings
+
+Turn one raw snapshot into one cleaned row per posting. You must name the snapshot
+explicitly:
+
+```bash
+python src/prepare_postings.py --snapshot 20261006T171338Z
+```
+
+- **Inputs:** the snapshot's files listed in `data/raw_manifest.csv` (their SHA-256 is
+  verified first, and processing stops on any mismatch) and the board metadata in
+  `config/boards.yaml`. Raw files are opened read-only and never changed.
+- **Outputs (git-ignored, regenerable):** `data/processed/postings_{snapshot_id}.jsonl` and
+  `.csv` (UTF-8).
+- **Quality report (tracked):** `reports/sprint1_cleaning_quality_{snapshot_id}.md`.
+- **Columns (26, see data contract §2):** `posting_id` (`greenhouse:{board_token}:{job_id}`),
+  source and board metadata, `company_name` (standardized, from config) and
+  `source_company_name` (the API's value), `raw_text` (unmodified `content`), `clean_text`,
+  `text_hash`, `word_count`, `is_placeholder`, `exclusion_reason`, `is_duplicate_of` and
+  `cleaning_version`. A row is usable when `exclusion_reason` is empty.
+- **Kept for audit:** flagged rows (missing or empty description, placeholder or
+  talent-pool posting, exact duplicate) stay in the output and are never deleted.
+- **List fields:** `departments` and `offices` are lists of names. They are JSON arrays in
+  JSONL and JSON-encoded strings in CSV.
+- **`source_language`:** Greenhouse's employer-set `language` field. It is not a detected
+  language.
+
+No database loading or skill extraction yet.
 
 ## Data source
 
