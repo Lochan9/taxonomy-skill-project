@@ -1,6 +1,6 @@
-# Shared Data Contract (DRAFT v0.3.1)
+# Shared Data Contract (DRAFT v0.4)
 
-**Status:** Draft v0.3.1 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
+**Status:** Draft v0.4 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
 **Required by:** the end of Sprint 1. The brief says "Both groups must agree on a shared schema
 in Sprint 1 so that Sprint 5 can join the taxonomies without rework" (p.5).
 
@@ -21,6 +21,8 @@ Field notes use these labels:
 | D4 | ID formats | See §1 |
 | D5 | Representation for comparing topics across groups | One shared sentence-embedding model (name and version recorded) |
 | D6 | Language scope | English only for v1, with the language detected and stored |
+| D9 | ESCO version | **ESCO v1.2.1**, English, CSV "classification" package from the official portal (proposal). Imported into Section B's local-dev DB; the original ZIP was not kept, and the CSV hashes are in `data/reference_manifest.csv`. See `reports/sprint1_esco_reference.md` |
+| D10 | O*NET loading (shared dependency) | Needed by both sections (task–skill priors, Sprint 5). **Owner and version to be coordinated with Section A; not agreed.** Section B has not loaded O*NET |
 | D7 | Who owns which tables | Postings: joint. Statements, topics, membership, hierarchy: each section writes its own rows, separated by `kind`. Task–skill map: joint (Sprint 5) |
 
 ## 1. Conventions [PROP]
@@ -146,6 +148,27 @@ The methods are still to be documented.
 - Reference tables, loaded unmodified with a `source_version` column: `ref_esco_skills`,
   `ref_esco_skill_relations`, `ref_lightcast_skills`, `ref_onet_tasks`, `ref_onet_skills`,
   `ref_onet_occupation_skills`.
+- **ESCO (Section B), v0.4:** implemented in local-dev SQLite through
+  `sql/migration_002_esco_reference.sql`, designed from the real v1.2.1 headers. These tables
+  replace the placeholder names `ref_esco_skills` and `ref_esco_skill_relations`. **[PROP]**,
+  pending Section A:
+  - `esco_concepts`: key (`esco_version`, `concept_uri`). Columns: `concept_type`
+    (`KnowledgeSkillCompetence` | `SkillGroup`, source terms), `preferred_label`,
+    `alt_labels` / `hidden_labels` (JSON arrays), `description`, `definition`,
+    `scope_note`, `skill_type`, `reuse_level`, `code`, `status`, `modified_date`,
+    `source_file`, `source_row_count`.
+  - `esco_broader_relations`: `concept_uri → broader_uri`, with source `concept_type` and
+    `broader_type`. The view `esco_narrower_relations` gives the inverse.
+  - `esco_skill_relations`: source `relation_type` (`essential` / `optional`) and both
+    skill types.
+  - `esco_concept_schemes` and `esco_concept_scheme_members` (from `inScheme`).
+  - `esco_source_duplicates`: an audit of source rows that repeat a URI.
+  - `esco_imports`: provenance, including file hashes, the acquisition date and its
+    evidence.
+  - `schema_migrations`: the applied migrations. `schema_meta.schema_version` stays the
+    postings schema version.
+  - Downstream (Sprint 4) evaluation should reference (`esco_version`, `concept_uri`).
+- **O*NET:** a shared dependency (D10), with ownership not yet agreed.
 
 ## 9. Change process [PROP]
 
@@ -203,6 +226,8 @@ This is a reference implementation of §2, **not** the shared database (D3 is st
     therefore needs a new database or a future schema version. This is an open design point.
 
 ### Changelog
+- v0.4: ESCO v1.2.1 reference tables defined from the real headers and implemented in local-dev SQLite (§8). D9 updated. O*NET remains a shared dependency (D10, owner not agreed).
+- v0.3.2: Added D9 (ESCO version proposal: v1.2.1 en CSV) and D10 (O*NET as a shared dependency, owner not agreed). §8 records the ESCO acquisition status: registration tool and manifest exist; tables wait for the real headers.
 - v0.3.1: Added §11 describing Section B's local-dev SQLite implementation. D3 is still pending.
 - v0.3: §2 now matches the cleaner's actual output (cleaning version 0.1.0). Proposed new
   fields, all pending Section A: `internal_job_id`, `source_company_name`, `offices`,

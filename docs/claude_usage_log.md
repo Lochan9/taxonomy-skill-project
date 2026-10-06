@@ -288,6 +288,81 @@ duplicates but 9 candidate pairs at ≥ 0.99 similarity (location variants); and
 one requisition posted under two titles. Lesson: render and look at the charts, and treat a
 detector's confidence score as a claim to test rather than a fact.
 
+### 2026-10-06 — ESCO reference acquisition (Sprint 1), blocked on download
+**Goal:** Commit the exploration work. Then download the official ESCO English CSV
+archive, preserve it with hashes, inspect the real headers, and build a transactional
+loader and migration. No mapping and no extraction; O*NET is recorded as a shared
+dependency.
+**What Claude did:**
+- Committed `f937435`.
+- Researched the official source. The portal lists v1.2.1 to v1.0.3 and documents an
+  emailed-link process. Inspecting the page form and the confirmation page showed an email
+  input and no archive URL. I did not guess URLs, did not use a third-party copy (the Tabiya
+  GitHub repo is a transformed v1.1.1), and did not submit any email address.
+- Confirmed the licence on the official FAQ: Commission Decision 2011/833/EU, free reuse,
+  and attribution required.
+- Following the instruction to inspect the real headers first, I **did not** write the ESCO
+  loader or migration. Instead I built `src/register_esco_archive.py`, which does not depend
+  on the headers. It:
+  - preserves the original archive
+  - validates every zip member before writing (zip-slip, symlink and zip-bomb checks)
+  - extracts without overwriting anything
+  - records hashes in the tracked manifest
+  - writes a report of the real CSV headers
+  16 tests were added, using synthetic fixtures that are clearly marked as not ESCO
+  (155 tests in total, all passing).
+- Confirmed the pilot DB is unchanged: 470 / 468 / 2, integrity ok, 0 FK violations, and
+  the DB and raw files are byte-identical.
+- Wrote `reports/sprint1_esco_reference.md` with the blocker, the manual procedure and the
+  planned loader requirements.
+**Not done (and not estimated):** ESCO concept and relationship counts, missing labels,
+unresolved endpoints and examples. They all need the real files.
+**What we checked / changed:** *(team to fill in after review)*
+**Next:** a team member downloads v1.2.1 (en, CSV, classification) and runs the
+registration command. The ESCO loader is then designed from `reports/esco_headers_v1.2.1.md`.
+
+### 2026-10-06 — ESCO v1.2.1 import from manually downloaded CSVs (Sprint 1)
+**Goal:** Use the team's manually downloaded ESCO v1.2.1 English CSVs: find the folder,
+inspect the real headers, record hashes and the acquisition date (without claiming an
+archive hash), and import the skill reference tables transactionally. Postings and source
+files must be preserved.
+**What Claude did:**
+- Located the folder by its name prefix and found that there was **no ZIP**. Read all 19
+  headers and the official `dictionary_en.csv` before designing anything.
+- Profiled the real data first:
+  - 21 URIs are repeated in `skills_en.csv`, differing only in `modifiedDate`.
+  - 188 ragged rows in `skillsHierarchy`.
+  - 5 skills with an empty `skillType` (the DigComp areas).
+  - Mixed `inScheme` separators.
+  - 0 unresolved endpoints.
+  - All 636 hierarchy-file links are already broader relations.
+- Extended `register_esco_archive.py` with `--extracted-dir auto` (in-place, read-only)
+  and renamed the manifest's date column to `acquired_on` + `acquisition_evidence`, so a
+  filesystem-derived date can't pass for a stated download date. The manifest file did not
+  exist yet, so nothing was migrated.
+- Wrote `sql/migration_002_esco_reference.sql` and `src/load_esco.py`:
+  - exact header checks and verification against the manifest hashes
+  - strict endpoint and type validation, a cycle check, and the hierarchy cross-check
+  - the duplicate-URI policy, with an audit table
+  - the migration and import in one `BEGIN IMMEDIATE` transaction (DDL included)
+  - idempotent re-runs and conflict rejection
+- Imported: 14,579 concepts, 20,819 broader relations, 5,818 skill relations, with 0
+  unresolved references. The repeat run was a no-op. Content fingerprints of the existing
+  tables are unchanged, postings are 470 / 468 / 2, and integrity is ok with 0 FK
+  violations. The ESCO and Greenhouse source files are byte-identical.
+- 22 new tests (177 in total, all passing). Fixtures use the real header names with
+  synthetic example.org rows.
+**Corrections made during the session:**
+- The first registration run crashed while writing the header report: the real
+  `conceptSchemes.hasTopConcept` field is larger than Python csv's 131,072-character
+  default. The manifest rows were already correct. I raised the limit, added a regression
+  test and re-ran, and the re-run proved idempotent.
+- One of my tests edited CSV *text lines*, but `altLabels` contain embedded newlines, so
+  the edit landed on the wrong record. I fixed the test to edit parsed records.
+**What we checked / changed:** *(team to fill in after review)*
+**Open:** the original ZIP is not available; mapping and extraction are not started; the
+shared DB is pending; O*NET is a shared dependency with no owner agreed.
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

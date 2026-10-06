@@ -15,8 +15,10 @@ pilot proposal pending Section A. Pilot text cleaning is implemented (`src/prepa
 470 rows, 468 usable. See `reports/sprint1_cleaning_quality_20261006T171338Z.md`. The pilot
 is loaded into a **local development** SQLite database (`src/load_postings.py`); the shared
 database is still pending. A pilot exploration notebook is executed
-(`notebooks/sprint1_exploration.ipynb`; findings in `reports/sprint1_exploration.md`). No
-extraction exists yet. See `docs/sprint1_checklist.md`.
+(`notebooks/sprint1_exploration.ipynb`; findings in `reports/sprint1_exploration.md`). ESCO
+v1.2.1 skill reference tables are imported into the same local database
+(`reports/sprint1_esco_reference.md`). No extraction or ESCO mapping exists yet. See
+`docs/sprint1_checklist.md`.
 
 ## Repository layout
 
@@ -29,9 +31,10 @@ data/reference/    ESCO, Lightcast, O*NET downloads (git-ignored)
 docs/              Project brief, sprint checklists, data contract, Claude usage log
 notebooks/         Exploration and evaluation notebooks
 reports/           Sprint reports (incl. LLM token usage)
-sql/               Versioned local-dev database schema (schema_v1.sql)
+sql/               Versioned local-dev schema (schema_v1.sql) and migrations (migration_002_esco_reference.sql)
 src/               Pipeline source code (fetch_greenhouse.py, prepare_postings.py, load_postings.py,
-                   derive_features.py)
+                   derive_features.py, register_esco_archive.py, load_esco.py)
+data/reference_manifest.csv  Reference-data file hashes (tracked; created on first registration)
 tests/             pytest suite (mocked HTTP)
 ```
 
@@ -187,6 +190,50 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/sprint1_exploratio
   - `reports/sprint1_exploration_metrics.json`
 - **Integrity check:** the notebook hashes the database and raw snapshot before and after,
   and fails if anything changed.
+
+## Reference data: ESCO (Section B)
+
+**Status: ESCO v1.2.1 (English, classification, CSV) is imported into the local development
+SQLite database.** It is not mapped to postings yet. See `reports/sprint1_esco_reference.md`.
+
+- **Source and licence:** the official portal https://esco.ec.europa.eu/en/use-esco/download
+  (Commission Decision 2011/833/EU: free reuse with attribution, "This service uses the
+  ESCO classification of the European Commission"). The portal emails the download link,
+  so a team member downloads it manually.
+- **Files:** extracted under `data/reference/ESCO dataset - v1.2.1 - classification - en - csv`
+  (git-ignored). The scripts locate the folder by this name prefix. The original ZIP was
+  not kept, so only the CSVs are hashed.
+- **Step 1, record SHA-256 hashes** in the tracked `data/reference_manifest.csv`. This is
+  read-only and also writes `reports/esco_headers_v1.2.1.md`:
+
+  ```bash
+  python src/register_esco_archive.py --extracted-dir auto --version v1.2.1 --language en \
+    --acquired-on YYYY-MM-DD --acquisition-evidence "how you know this date"
+  # or, with the original ZIP:
+  python src/register_esco_archive.py --archive "/path/to/download.zip" --version v1.2.1 --downloaded-on YYYY-MM-DD
+  ```
+
+- **Step 2, import.** Migration `sql/migration_002_esco_reference.sql` and the data load
+  run in one transaction:
+
+  ```bash
+  python src/load_esco.py --db data/processed/taxonomy_pilot.sqlite --version v1.2.1 --source-dir auto
+  ```
+
+- **Tables:** `esco_concepts` (skills and skill groups), `esco_broader_relations` (plus the
+  `esco_narrower_relations` view), `esco_skill_relations`, `esco_concept_schemes`,
+  `esco_concept_scheme_members`, `esco_source_duplicates`, `esco_imports` and
+  `schema_migrations`. The key is (`esco_version`, `concept_uri`), and source terms
+  (`KnowledgeSkillCompetence`, `SkillGroup`, `essential` / `optional`, …) are kept verbatim.
+- **Safety:**
+  - Files must match their registered hashes.
+  - Headers must match exactly.
+  - Unresolved relationship endpoints abort the import.
+  - Re-importing identical files is a no-op; different files for the same version are
+    rejected.
+  - Existing posting tables are never modified.
+- **O*NET:** a shared dependency to coordinate with Section A (contract D10). It is not
+  loaded, and the owner has not been agreed.
 
 ## Data source
 

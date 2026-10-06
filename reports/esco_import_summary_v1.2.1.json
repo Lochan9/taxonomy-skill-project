@@ -1,0 +1,362 @@
+{
+ "tables": [
+  "esco_broader_relations",
+  "esco_concept_scheme_members",
+  "esco_concept_schemes",
+  "esco_concepts",
+  "esco_imports",
+  "esco_narrower_relations",
+  "esco_skill_relations",
+  "esco_source_duplicates",
+  "loads",
+  "postings",
+  "schema_meta",
+  "schema_migrations",
+  "snapshots",
+  "usable_postings"
+ ],
+ "import": [
+  [
+   1,
+   "v1.2.1",
+   "en",
+   "data/reference/ESCO dataset - v1.2.1 - classification - en - csv",
+   "2026-10-06",
+   "date the extracted folder appeared in this repo (filesystem creation time 2026-10-06 14:47 EDT); portal download date not stated; original ZIP not available",
+   "0.1.0",
+   "2026-10-06T18:59:36Z",
+   14579,
+   20819,
+   5818
+  ]
+ ],
+ "migrations": [
+  [
+   "002",
+   "migration_002_esco_reference.sql",
+   "d1660f11027160489a35cf8ce4076d0ad7aa02fefb2b5d6ef7fa3f0572329c14",
+   "2026-10-06T18:59:36Z"
+  ]
+ ],
+ "concepts_by_type": [
+  [
+   "KnowledgeSkillCompetence",
+   13939
+  ],
+  [
+   "SkillGroup",
+   640
+  ]
+ ],
+ "skill_type": [
+  [
+   "skill/competence",
+   10715
+  ],
+  [
+   "knowledge",
+   3219
+  ],
+  [
+   "(empty in source)",
+   5
+  ]
+ ],
+ "reuse_level": [
+  [
+   "sector-specific",
+   6655
+  ],
+  [
+   "cross-sector",
+   3783
+  ],
+  [
+   "occupation-specific",
+   3044
+  ],
+  [
+   "transversal",
+   452
+  ],
+  [
+   "(empty in source)",
+   5
+  ]
+ ],
+ "broader_by_types": [
+  [
+   "KnowledgeSkillCompetence",
+   "SkillGroup",
+   13723
+  ],
+  [
+   "KnowledgeSkillCompetence",
+   "KnowledgeSkillCompetence",
+   6460
+  ],
+  [
+   "SkillGroup",
+   "SkillGroup",
+   636
+  ]
+ ],
+ "skill_rel_by_type": [
+  [
+   "optional",
+   "skill/competence",
+   "knowledge",
+   5453
+  ],
+  [
+   "optional",
+   "skill/competence",
+   "skill/competence",
+   141
+  ],
+  [
+   "essential",
+   "skill/competence",
+   "knowledge",
+   93
+  ],
+  [
+   "essential",
+   "skill/competence",
+   "skill/competence",
+   82
+  ],
+  [
+   "optional",
+   "knowledge",
+   "knowledge",
+   35
+  ],
+  [
+   "essential",
+   "knowledge",
+   "knowledge",
+   14
+  ]
+ ],
+ "missing_KnowledgeSkillCompetence": [
+  13939,
+  0,
+  18,
+  0,
+  13704,
+  13939
+ ],
+ "missing_SkillGroup": [
+  640,
+  0,
+  528,
+  133,
+  316,
+  0
+ ],
+ "dup_concepts": [
+  [
+   21,
+   42
+  ]
+ ],
+ "alt_label_total": [
+  [
+   86622
+  ]
+ ],
+ "top_groups": [
+  [
+   "knowledge",
+   "K",
+   12
+  ],
+  [
+   "language skills and knowledge",
+   "L",
+   2
+  ],
+  [
+   "skills",
+   "S",
+   8
+  ],
+  [
+   "transversal skills and competences",
+   "T",
+   6
+  ]
+ ],
+ "skills_multi_broader": [
+  [
+   4759
+  ]
+ ],
+ "skills_without_broader": [
+  [
+   0
+  ]
+ ],
+ "scheme_members_by_scheme": [
+  [
+   "ESCO skills",
+   14579
+  ],
+  [
+   "ESCO member skills",
+   13939
+  ],
+  [
+   "Digital",
+   1284
+  ],
+  [
+   "ESCO skills hierarchy",
+   640
+  ],
+  [
+   "Green",
+   629
+  ],
+  [
+   "Language",
+   359
+  ],
+  [
+   "International standard classification of education: fields of education and training 2013",
+   220
+  ],
+  [
+   "ESCO transversal skill groups",
+   125
+  ],
+  [
+   "Research",
+   40
+  ],
+  [
+   "DigComp",
+   25
+  ]
+ ],
+ "examples": [
+  {
+   "uri": "http://data.europa.eu/esco/skill/00090cc1-1f27-439e-a4e0-19a87a501bfc",
+   "type": "KnowledgeSkillCompetence",
+   "label": "identify available services",
+   "skill_type": "skill/competence",
+   "reuse_level": "cross-sector",
+   "code": null,
+   "alt_labels": 8,
+   "description": "Identify the different services available for an offender during probation in order to help in the rehabilitat",
+   "source_rows": 1,
+   "broader": [
+    [
+     "SkillGroup",
+     "assisting people to access services"
+    ]
+   ]
+  },
+  {
+   "uri": "http://data.europa.eu/esco/skill/000f1d3d-220f-4789-9c0a-cc742521fb02",
+   "type": "KnowledgeSkillCompetence",
+   "label": "Haskell",
+   "skill_type": "knowledge",
+   "reuse_level": "sector-specific",
+   "code": null,
+   "alt_labels": 1,
+   "description": "The techniques and principles of software development, such as analysis, algorithms, coding, testing and compi",
+   "source_rows": 1,
+   "broader": [
+    [
+     "KnowledgeSkillCompetence",
+     "computer programming"
+    ],
+    [
+     "SkillGroup",
+     "software and applications development and analysis"
+    ]
+   ]
+  },
+  {
+   "uri": "http://data.europa.eu/esco/skill/001115fb-569f-4ee6-8381-c6807ef2527f",
+   "type": "KnowledgeSkillCompetence",
+   "label": "show initiative",
+   "skill_type": "skill/competence",
+   "reuse_level": "transversal",
+   "code": null,
+   "alt_labels": 7,
+   "description": "Be proactive and take the first step in an action without waiting for what others say or do.",
+   "source_rows": 1,
+   "broader": [
+    [
+     "SkillGroup",
+     "taking a proactive approach"
+    ]
+   ]
+  },
+  {
+   "uri": "http://data.europa.eu/esco/skill/11dc8e6b-dffa-42e4-9de1-c47293a848ff",
+   "type": "KnowledgeSkillCompetence",
+   "label": "operate pumping equipment",
+   "skill_type": "skill/competence",
+   "reuse_level": "sector-specific",
+   "code": null,
+   "alt_labels": 16,
+   "description": "Operate pumping equipment and control oil and gas pumping systems. Manipulate control panels to adjust pressur",
+   "source_rows": 2,
+   "broader": [
+    [
+     "KnowledgeSkillCompetence",
+     "operate pumping systems"
+    ],
+    [
+     "KnowledgeSkillCompetence",
+     "operate pumps"
+    ],
+    [
+     "SkillGroup",
+     "operating pumping systems or equipment"
+    ]
+   ]
+  },
+  {
+   "uri": "http://data.europa.eu/esco/skill/00d5d1d2-c521-4c58-9df5-2939c0ce9adb",
+   "type": "SkillGroup",
+   "label": "accompanying and welcoming people",
+   "skill_type": null,
+   "reuse_level": null,
+   "code": "S3.4.2",
+   "alt_labels": 0,
+   "description": "Welcoming, accompanying or supporting clients, patrons, visitors and others by helping them to feel at ease, a",
+   "source_rows": 1,
+   "broader": [
+    [
+     "SkillGroup",
+     "providing information and support to the public and clients"
+    ]
+   ]
+  }
+ ],
+ "integrity": "ok",
+ "fk_violations": 0,
+ "validation": {
+  "warnings": 0,
+  "empty_label_pieces_dropped": 4,
+  "broader_type_mismatches": 0,
+  "broader_label_mismatches": 0,
+  "skill_relation_skilltype_mismatches": 0,
+  "hierarchy_file": {
+   "links": 636,
+   "missing_from_broader_relations": 0,
+   "unknown_uris": 0
+  },
+  "broader_cycles": 0,
+  "unresolved": {
+   "inScheme": 0,
+   "broader_relations": 0,
+   "skill_relations": 0
+  }
+ }
+}

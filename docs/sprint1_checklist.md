@@ -79,8 +79,25 @@ Items are sorted into three groups by how firmly the brief states them:
   - [ ] Until then, use SQLite/DuckDB for local development only. Every local copy is a
         separate file and is not shared automatically.
 - [ ] **[SAMPLE]** Load O*NET and ESCO reference tables next to the postings.
-  - [ ] ESCO skills plus skill hierarchy/relations (Section B's reference standard)
-  - [ ] O*NET skills and occupation–skill links (needed for the Sprint 5 join)
+  - [x] ESCO skills plus skill hierarchy/relations (Section B's reference standard), in
+        the **local-dev** DB only. See `reports/sprint1_esco_reference.md`.
+    - [x] Official source, version (v1.2.1, en, CSV classification) and licence
+          (Commission Decision 2011/833/EU, attribution required) recorded
+    - [x] Downloaded manually by a team member. The extracted folder is registered in
+          place: 19 CSV SHA-256 hashes are in `data/reference_manifest.csv`, with
+          acquisition date 2026-10-06 and its evidence. **The original ZIP is not
+          available, so no archive hash is recorded.**
+    - [x] Real headers inspected (`reports/esco_headers_v1.2.1.md`). Migration
+          `sql/migration_002_esco_reference.sql` and loader `src/load_esco.py` designed
+          from them, with 22 tests
+    - [x] Imported: 14,579 concepts (13,939 skills, 640 skill groups), 20,819 broader
+          relations, 5,818 skill–skill relations. 0 unresolved references. Postings are
+          still 470 / 468 / 2
+    - [ ] Commit `data/reference_manifest.csv`, the reports and the code (pending review)
+    - [ ] Agree the ESCO version and table design with Section A (contract D9, §8)
+  - [ ] O*NET skills and occupation–skill links (needed for the Sprint 5 join). **Shared
+        dependency to coordinate with Section A; owner not agreed** (contract D10). Not
+        started by Section B.
   - [ ] **[REC]** Lightcast Open Skills as well. The brief names it as a Section B reference
         (*p.2, p.5*), but Sprint 1 only lists O*NET and ESCO.
 - [ ] **[SAMPLE]** Generate summary statistics with Claude Code. **Done for the pilot
