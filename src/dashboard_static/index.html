@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team B Dashboard</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Team B Dashboard</h1>
+      <span class="sub">Skills taxonomy · local only · snapshot <span id="snapshot">…</span></span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-view="corpus" aria-selected="true">Corpus explorer</button>
+      <button role="tab" data-view="extraction" aria-selected="false">Extraction results</button>
+      <button role="tab" data-view="review" aria-selected="false">Annotation review</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 1. Corpus explorer -->
+    <section id="view-corpus" class="view">
+      <div class="cards" id="corpus-metrics"></div>
+      <details class="figs">
+        <summary>Sprint 1 exploration figures</summary>
+        <div id="corpus-figures" class="figure-grid"></div>
+      </details>
+      <div class="filters">
+        <label>Employer <select id="f-employer"><option value="">All</option></select></label>
+        <label>Seniority <select id="f-seniority"><option value="">All</option></select></label>
+        <label>Exclusion <select id="f-exclusion">
+          <option value="">All</option><option value="usable">Usable only</option>
+          <option value="excluded">Excluded only</option></select></label>
+        <label class="grow">Title contains <input id="f-q" type="search" placeholder="e.g. engineer"></label>
+        <span id="corpus-count" class="muted"></span>
+      </div>
+      <div class="split wide-left">
+        <div class="table-wrap"><table id="corpus-table">
+          <thead><tr><th>Employer</th><th>Title</th><th>Seniority</th><th>Words</th><th>Status</th></tr></thead>
+          <tbody></tbody></table></div>
+        <article id="corpus-detail" class="detail empty-state">Select a posting to read its clean text.</article>
+      </div>
+    </section>
+
+    <!-- 2. Extraction results -->
+    <section id="view-extraction" class="view" hidden>
+      <div class="banner ai">AI-generated, unreviewed. Shown exactly as stored; nothing here is edited.</div>
+      <div class="filters">
+        <label>Run <select id="run-select"></select></label>
+        <span id="run-empty" class="muted"></span>
+      </div>
+      <div id="run-meta" class="cards"></div>
+      <div class="split">
+        <ul id="run-postings" class="list"></ul>
+        <article id="run-detail" class="detail empty-state">Select a development posting.</article>
+      </div>
+    </section>
+
+    <!-- 3. Annotation review -->
+    <section id="view-review" class="view" hidden>
+      <div class="banner ai">AI-generated, unreviewed drafts (development postings only). Your decisions are saved
+        separately; drafts and clean text are never modified.</div>
+      <div class="filters">
+        <label>Reviewer ID <input id="reviewer" placeholder="e.g. alice" autocomplete="off"></label>
+        <label>Draft source <select id="review-source">
+          <option value="ai_revised">ai_revised</option><option value="ai_draft">ai_draft</option></select></label>
+        <span id="review-msg" class="muted"></span>
+      </div>
+      <div class="split">
+        <ul id="review-postings" class="list"></ul>
+        <article id="review-detail" class="detail empty-state">Enter a reviewer ID, then select a posting.</article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="edit-dialog">
+    <form id="edit-form" method="dialog">
+      <h2 id="edit-title">Edit skill</h2>
+      <p class="muted">Evidence must be copied exactly from the posting. Tip: select text in the posting first.</p>
+      <label>Skill statement <input name="skill_statement" required></label>
+      <label>Evidence text (exact) <textarea name="evidence_text" rows="3" required></textarea></label>
+      <label>Occurrence (if the evidence appears more than once)
+        <select name="occurrence"><option value="">—</option></select></label>
+      <div class="row">
+        <label>Requirement <select name="required_or_preferred">
+          <option>required</option><option>preferred</option><option>unspecified</option></select></label>
+        <label>Category <select name="skill_category"><option value="">—</option><option>technical</option>
+          <option>tool</option><option>domain_knowledge</option><option>transferable</option></select></label>
+        <label>Alternative group <input name="alternative_group_id" placeholder="optional"></label>
+      </div>
+      <label>Review notes <input name="review_notes" placeholder="e.g. DISCUSS: …"></label>
+      <p id="edit-error" class="error" role="alert"></p>
+      <div class="row end">
+        <button value="cancel" formnovalidate class="ghost">Cancel</button>
+        <button id="edit-save" value="save">Save decision</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -57,3 +57,6 @@ data/extraction/
 
 # --- Review exports that embed full posting texts (regenerable; keep out of Git) ---
 reports/development_annotation_review.json
+
+# --- Dashboard browser-verification screenshots (show development posting text; regenerable) ---
+reports/dashboard_screenshots/

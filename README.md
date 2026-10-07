@@ -284,6 +284,70 @@ python src/extract_skills.py --model <model-id> --resume <run_id>
   (`config/extraction.yaml`). Results are not yet loaded
   into a `statements` table (the shared database, D3, is still open).
 
+## Team B dashboard (local)
+
+A local browser dashboard with three views: **corpus explorer**, **extraction results**,
+and **annotation review**. It is built on the Python standard library alone (WSGI), with no
+new dependencies, CDNs or external requests.
+
+```bash
+.venv/bin/python src/dashboard.py              # http://127.0.0.1:8765/  (Ctrl+C to stop)
+.venv/bin/python src/dashboard.py --port 8800  # another port
+```
+
+- **Local only:** it binds to `127.0.0.1` and refuses other `Host` headers. It never reads
+  `.env`, holds no keys and makes no API calls; the browser talks only to this server.
+  Writes need a same-origin JSON request with a custom header.
+- **Read-only sources:**
+  - the SQLite DB (`mode=ro`)
+  - `reports/sprint1_exploration_metrics.json` and `reports/figures/`
+  - `data/processed/derived/` (seniority)
+  - `data/extraction/runs/`
+  - the AI draft workspaces `annotators/ai_revised` and `annotators/ai_draft`
+- **Held-out data:**
+  - The text of the 80 evaluation postings is never shown, nor that of any posting grouped
+    with one in the frozen manifest (near-identical variants).
+  - The extraction and review views accept development postings only.
+  - The human annotator folders are not loaded.
+- **Extraction results** are labelled *AI-generated, unreviewed* and shown exactly as
+  stored:
+  - Evidence is highlighted only where the stored offsets match `clean_text`; mismatches
+    are flagged, never moved.
+  - Illustrative examples, categories and individual requirements are badged differently.
+  - Postings without a result show an empty state.
+- **Annotation review:** accept, edit, reject, reopen, or add a skill.
+  - Evidence must be copied exactly. The server computes the offsets and asks for an
+    occurrence when the text repeats.
+  - Decisions are appended, never rewritten, to
+    `data/annotation/sprint2_v1/reviews/<reviewer_id>/decisions.jsonl`. Each entry has the
+    reviewer ID, a UTC timestamp, the draft file and `clean_text` hashes, and the original
+    draft row.
+  - Drafts and `clean_text` are never changed.
+  - DISCUSS, illustrative and AI-suggested records stay visibly flagged.
+  - These are human review decisions, so the folder is tracked like the annotator CSVs.
+- **Tests:** `tests/test_dashboard.py` (29 tests, including one against a real `wsgiref` server).
+- **Browser verification (2026-10-07):** `tests/browser/verify_dashboard.py` drove the
+  installed Google Chrome headlessly with Playwright 1.63, against a dashboard started with a
+  **temporary** `--reviews-dir` and the test reviewer `pwtest`. **50/50 checks passed**:
+  - all three views; filters, search, scrolling and the 5 figures
+  - the pilot run with badges, tinted highlights and empty states
+  - accept, edit, reject, reopen, and add skill, including from a text selection
+  - invalid evidence errors and the repeated-evidence occurrence picker
+  - decisions surviving a page refresh
+  - held-out texts refused (403)
+  - no horizontal scroll at 390 px wide
+  - no unexpected console errors
+
+  The real `reviews/` folder was not written, and every source file stayed byte-identical.
+  Playwright is an optional tool, not a project dependency. To rerun (screenshots go to the
+  git-ignored `reports/dashboard_screenshots/`):
+
+  ```bash
+  python -m venv /tmp/pwvenv && /tmp/pwvenv/bin/pip install playwright
+  .venv/bin/python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews &
+  /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py /tmp/dash_check /tmp/dash_reviews <eval_id> <variant_id>
+  ```
+
 ## Reference data: ESCO (Section B)
 
 **Status: ESCO v1.2.1 (English, classification, CSV) is imported into the local development

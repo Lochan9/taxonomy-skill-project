@@ -639,6 +639,124 @@ model was the user's choice, `claude-sonnet-5-5`, picked from the account's
 **Not done:** no evaluation postings; annotation labels unchanged; nothing committed.
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-07 — Local Team B dashboard (Sprint 2)
+**Goal:** One local tool to explore the corpus, inspect saved extraction runs, and review the
+development drafts. No clusters, hierarchy or ESCO mapping yet.
+
+**Choice:** Python standard-library WSGI (`wsgiref`) with a static HTML/JS/CSS page. That
+means no new dependency, a testable app object, and nothing loaded from outside the
+machine.
+
+**Built:** `src/dashboard.py` and `src/dashboard_static/` (`index.html`, `app.js`, `app.css`).
+- **Corpus explorer:** all 470 postings from the read-only DB, with employer, seniority,
+  exclusion and title filters. It reuses the Sprint 1 metrics JSON and its 5 figures.
+- **Extraction results:** reads `data/extraction/runs/` and shows:
+  - the model, run ID, provider access, brief p.7 status (unresolved), prompt and schema
+    versions, and the recorded token usage
+  - per-posting status, with empty states for postings without a result
+  - evidence highlighted only where `clean_text[start:end] == source_span`
+  - `requirement_status` and `mention_relation` badges, so illustrative examples stand
+    apart from individual requirements
+  - warnings and rejected records
+  - the label "AI-generated, unreviewed"; nothing stored is changed
+- **Annotation review:** loads `ai_revised` or `ai_draft`, separately from the API runs.
+  - Actions: accept, edit, reject, reopen, add.
+  - Evidence must be exact. Offsets are computed on the server, and a repeated phrase needs
+    an explicit occurrence.
+  - Decisions are appended per reviewer, with an ID and timestamp, the draft and text
+    hashes, and the original row. Drafts are never written.
+  - DISCUSS, illustrative and suggested-addition flags stay visible.
+- **Held out:** the 80 evaluation postings plus 6 grouped variants (86 texts) are withheld
+  everywhere. Review and extraction accept development postings only, and human folders
+  are not loaded.
+- **Safety:** binds to 127.0.0.1 and checks the Host header; POSTs must be same-origin JSON
+  with a custom header; CSP `default-src 'self'`; every value is rendered as text. It never
+  reads `.env` and makes no API calls.
+
+**Tests:** 28 tests in `tests/test_dashboard.py` (271 in total, all passing). They cover:
+- segments that reassemble the text, overlaps, and invalid or tampered offsets (flagged,
+  not drawn or repaired)
+- extraction labels and empty states
+- persistence: append-only, per reviewer, the latest decision wins, reopen, editing and
+  rejecting added records
+- invalid evidence (case, spacing, whitespace, empty, repeated without occurrence, wrong
+  client offset) and invalid fields
+- held-out texts refused on every route
+- byte-identical DB, drafts, manifest and run files after reads and writes
+- Host and header checks, path traversal, and no credential code
+
+**Checked live:** a smoke test on the real data covered every endpoint, 86 held-out texts
+refused, and the pilot run highlighted with 0 invalid offsets. A localhost server check
+returned the CSP header, refused a foreign Host (403) and a POST without the header (403),
+and listened on 127.0.0.1 only. `app.js` passes a syntax check. The UI has not been
+clicked through in a browser.
+**Not done:** no review decisions recorded; nothing committed.
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-07 — Dashboard browser verification and UI fixes (Sprint 2)
+**Goal:** Test all three dashboard views in a real browser, fix what breaks, and record the
+results.
+
+**Setup:**
+- **Browser:** the Claude in Chrome extension was declined. Instead, Playwright 1.63 (in a
+  scratch venv, not a project dependency) drove the installed Google Chrome headlessly.
+- **Isolation:** the dashboard ran with a temporary `--reviews-dir` and the test reviewer
+  `pwtest`. Sixteen source files were hashed before the run: the DB, manifest, templates,
+  `ai_draft`, `ai_revised`, `annotator-a`/`-b` and the pilot run files.
+- **Script:** `tests/browser/verify_dashboard.py` (not collected by pytest). Screenshots
+  are in `reports/dashboard_screenshots/` (git-ignored).
+
+**Issues found in the browser and fixed:**
+1. **Double `Content-Length`.** Every response after `/favicon.ico` carried a second
+   `Content-Length: 0`, and Chrome refused to load the page
+   (`ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH`).
+   - Cause: a shared module-level header list was passed to `start_response`, and wsgiref
+     appended to it.
+   - Fix: the headers are now a tuple, copied into each response.
+   - New test: a real `wsgiref` server must send exactly one `Content-Length`. The old
+     behaviour was reproduced in a scratch copy, and it sends two.
+2. **Favicon 404 in the console.** `/favicon.ico` now returns 204.
+3. **Clipped corpus table.** The Seniority, Words and Status columns were cut off. The corpus
+   view now uses a wider left column, and detail panels are sticky on desktop.
+4. **27 px horizontal scroll at phone width.** The long run dropdown caused it; form
+   controls now fit their container.
+5. **Overflowing add/edit dialog.** The occurrence options, which include context text,
+   pushed the inputs and Save button outside the dialog. Its controls are now 100% width.
+6. **Lost server error.** For repeated evidence, the server's message was overwritten by
+   the local hint; it now stays visible.
+7. **Redundant buttons.** Accepted records no longer show Accept, and rejected records no
+   longer show Reject.
+8. **Uniform highlights.** Extraction highlights didn't separate illustrative examples or
+   categories from individual requirements. They are now tinted by mention type, with a
+   legend; overlaps keep their own tint.
+9. **Crash from the legend.** The legend's sample marks broke click-to-focus. Focus now
+   uses `mark[data-ids]`.
+10. **Empty snapshot label.** It stayed "…" when the page opened on the review or extraction
+    tab; those endpoints now return `snapshot_id`.
+
+**Result:** **50/50 browser checks passed** on the final run (`exit 0`).
+- Corpus: 470 rows; filters, search, internal scrolling; 5 figures loaded; a held-out
+  notice instead of text.
+- Extraction: run metadata and tokens (14,266 / 7,860); 3 ok and 17 empty states; 16
+  Robinhood statements with 7 illustrative; validated, tinted highlights; click-to-focus.
+- Review:
+  - DISCUSS flags visible
+  - accept, reject, reopen and edit
+  - invalid evidence rejected with the server's message
+  - "Duolingo" offered 11 occurrences, and saving without choosing one was refused
+  - adding with a chosen occurrence, and adding from a text selection
+  - after a refresh: reviewer ID, tab and all 7 decisions restored
+  - `decisions.jsonl` written only in the temporary directory
+- Held out: five read routes and one write route refused an evaluation posting and a
+  grouped variant (403).
+- Phone width (390 px): no horizontal page scroll.
+- Console: no unexpected errors; only the 2 deliberate invalid-evidence requests logged
+  a 400.
+
+**Checks afterwards:** all 16 hashed source files unchanged; the real `reviews/` folder
+absent; 272 unit tests passing (`tests/test_dashboard.py`: 29).
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

@@ -83,6 +83,15 @@ Source: `docs/master_project_description.pdf` p.3. Tags as in `docs/sprint1_chec
       development postings
 - [ ] Decide on the proposed `mention_relation` field for annotations and statements
       (contract §12); `skills.csv` is unchanged
+- [x] Local dashboard `src/dashboard.py` (standard library only, localhost only):
+  - corpus explorer
+  - extraction results (AI-generated, unreviewed), with validated evidence highlighting
+  - annotation review of the development drafts: accept / edit / reject / add, exact
+    evidence, decisions appended to `reviews/<reviewer>/decisions.jsonl`
+  - evaluation texts and labels held out
+  - 29 tests
+  - browser-verified with Playwright (50/50 checks, temporary review directory)
+- [ ] Human review of the development drafts in the dashboard (no decisions recorded yet)
 - [ ] Load accepted statements into `statements` rows (`kind = skill`, offsets under the
       shared convention, contract §12) once the shared database (D3) is agreed
 - [ ] Quality report: P/R on the evaluation postings (and on all 100 if required), per
