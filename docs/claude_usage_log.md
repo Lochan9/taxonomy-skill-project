@@ -975,6 +975,75 @@ absent; the 20 screenshots are in `reports/dashboard_screenshots/` (git-ignored)
 
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-07 — `fcntl` portability fix for the review log lock (Sprint 2)
+**Goal:** Investigate a reported `fcntl` error. No traceback or operating system was supplied.
+
+**Confirmed facts:**
+- The only first-party use is `src/review_workflow.py`. It imported `fcntl` at module level,
+  and `_file_lock` called `flock`.
+- `dashboard.py` and both dashboard test files import that module. With `fcntl` missing
+  (simulated by blocking the module), importing `dashboard.py` fails with
+  `ModuleNotFoundError`, which breaks every dashboard view and test, not just saving.
+- `fcntl` is a POSIX-only standard-library module, not a pip package.
+- The only dependency that uses it, `ptyprocess` (through `pexpect`), is a dev-only package.
+  It is installed only when `sys_platform != "win32"`, and `pexpect` imports it only off
+  Windows, so it is not a cause.
+- No local module named `fcntl` shadows the standard one.
+- The README's setup includes Windows activation (`.venv\Scripts\activate`).
+- This machine (macOS 26.6.2 arm64, Python 3.14.8) has `fcntl`, so the error cannot be
+  reproduced here.
+
+**Plausible causes, not confirmed:**
+- (a) Native Windows Python: `No module named 'fcntl'` at import.
+- (b) A POSIX filesystem that refuses `flock` (`ENOTSUP`/`ENOLCK`, some network or synced
+  folders): the error would appear only when saving.
+
+**What the locks protect:** the thread lock and the inter-process file lock make three things
+one atomic step: reading the log, checking the expected version and the client request ID,
+and appending. Without them, concurrent writers lose updates. Append-only history comes from
+append mode plus never rewriting.
+
+**Options compared:**
+1. Choose a platform backend: `fcntl.flock` or `msvcrt.locking` (chosen).
+2. An `O_EXCL` lock file: works everywhere, but needs stale-lock recovery after a crash.
+3. A new dependency (`filelock` or `portalocker`).
+4. Removing the inter-process lock (rejected).
+
+**Fix (smallest supported by the evidence):**
+- Guarded imports of `fcntl` and `msvcrt`.
+- On Windows, `msvcrt.locking` polls with a bounded 30 s wait.
+- A filesystem that refuses the lock, or a platform with neither backend, refuses the write
+  with a 503 and a clear message. It never writes without the lock, and read-only views keep
+  working.
+- `dashboard.py` maps 503.
+
+**Tests:** 9 new tests in `tests/test_review_lock.py`, 297 in total, all passing.
+- **Native on macOS:** 6 real processes racing at the same version (exactly 1 write; with the
+  lock disabled in a scratch copy, 3 of 6 wrote, so the test detects the race); 5 processes
+  sending the same request ID (written once); a held lock blocking a second process.
+- **Mocked, not native Windows:** the msvcrt path with retries; the msvcrt timeout giving
+  503; no backend (views work, writes give 503); flock raising `ENOTSUP`/`ENOLCK` (503,
+  nothing written); importing with `fcntl` blocked.
+- Browser checks: 74/74 on the new code.
+
+**Incident during verification:** port 8765 was already taken by another dashboard process
+(PID 24252, started before this work and using the real folders). My server could not start,
+and one browser run wrote test data, from test reviewer `pwtest`, into the real `reviews/` and
+`reviewed/` folders.
+- Those folders did not exist before, and they held only that run's 21 `pwtest` events and
+  one export. I removed exactly those files, and the folders are absent again.
+- The 18 hashed source and workspace files are unchanged.
+- PID 24252 was left running.
+- Prevention: a read-only `/api/review/storage` endpoint, and the browser script now refuses
+  to run unless the server writes to the temporary folders passed to it (the port can be
+  set with `DASH_URL`). The guard was checked against that server: it refused, and wrote
+  nothing.
+
+**Platforms actually tested:** macOS only. Native Windows and Linux were **not** run.
+**Still needed to confirm the cause:** the full traceback, the operating system, the Python
+version, and the path of the reviews folder.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |

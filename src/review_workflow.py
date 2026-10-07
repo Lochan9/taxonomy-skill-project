@@ -19,18 +19,30 @@ ai_revised or human folders) and are never called gold.
 from __future__ import annotations
 
 import csv
-import fcntl
 import hashlib
 import json
 import os
 import re
 import tempfile
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 import annotations as an
+
+# Inter-process locking backend, chosen at import time. fcntl is POSIX-only (macOS, Linux, WSL) and
+# msvcrt is Windows-only; importing either unconditionally would break the whole dashboard elsewhere.
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+LOCK_TIMEOUT_SECONDS = 30.0
 
 MODES = ("development", "evaluation")
 DEV_SOURCES = ("ai_revised", "ai_draft")
@@ -671,17 +683,55 @@ def replay(text: str, meta: dict, drafts: list[dict], draft_sha, posting_note: s
 
 
 class _file_lock:
-    """Advisory exclusive lock on the reviewer's log while appending (also guards other processes)."""
+    """Exclusive inter-process lock on <log>.lock while the log is read, checked and appended.
 
-    def __init__(self, path: Path):
+    It makes the version check, the duplicate-request check and the append one atomic step, also across
+    processes (two dashboard servers on the same reviews folder). POSIX uses fcntl.flock; Windows uses
+    msvcrt.locking on byte 0 of the lock file. If no backend exists, or the filesystem refuses the lock
+    (some network or synced folders), the write is refused (503): it is never done without the lock.
+    """
+
+    def __init__(self, path: Path, timeout: float = LOCK_TIMEOUT_SECONDS):
         self.path = path.with_name(path.name + ".lock")
+        self.timeout = timeout
 
     def __enter__(self):
+        if fcntl is None and msvcrt is None:
+            raise ReviewError("this Python has no file-locking support (neither fcntl nor msvcrt), so review "
+                              "decisions cannot be written safely; viewing still works", 503)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.fh = self.path.open("a")
-        fcntl.flock(self.fh, fcntl.LOCK_EX)
+        self.fh = self.path.open("a+b")
+        try:
+            if fcntl is not None:
+                fcntl.flock(self.fh.fileno(), fcntl.LOCK_EX)
+            else:
+                deadline = time.monotonic() + self.timeout
+                while True:
+                    self.fh.seek(0)
+                    try:  # LK_NBLCK: fail at once if held; we poll so the wait is bounded and explicit
+                        msvcrt.locking(self.fh.fileno(), msvcrt.LK_NBLCK, 1)
+                        break
+                    except OSError:
+                        if time.monotonic() >= deadline:
+                            raise ReviewError(f"another process has held {self.path.name} for over "
+                                              f"{self.timeout:.0f} s; try again", 503) from None
+                        time.sleep(0.05)
+        except OSError as e:
+            self.fh.close()
+            raise ReviewError(f"could not lock {self.path} ({e.strerror or e}); the folder may not support "
+                              f"file locks (network or synced drive?). Use --reviews-dir on a local disk.",
+                              503) from None
+        except BaseException:
+            self.fh.close()
+            raise
         return self
 
     def __exit__(self, *exc):
-        fcntl.flock(self.fh, fcntl.LOCK_UN)
-        self.fh.close()
+        try:
+            if fcntl is not None:
+                fcntl.flock(self.fh.fileno(), fcntl.LOCK_UN)
+            else:
+                self.fh.seek(0)
+                msvcrt.locking(self.fh.fileno(), msvcrt.LK_UNLCK, 1)
+        finally:
+            self.fh.close()

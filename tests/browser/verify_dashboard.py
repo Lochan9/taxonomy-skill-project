@@ -7,10 +7,12 @@ was started with a TEMPORARY review directory, so test decisions never reach the
     python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews --reviewed-dir /tmp/dash_reviewed &
     /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py OUT_DIR /tmp/dash_reviews /tmp/dash_reviewed EVAL_ID VARIANT_ID
 
-OUT_DIR receives shots/*.png and pw_results.json. EVAL_ID is an evaluation posting and VARIANT_ID a
+OUT_DIR receives shots/*.png and pw_results.json. The script first asks the server where it writes and
+refuses to run unless that is the given temporary folders. Set DASH_URL to use another port. EVAL_ID is an evaluation posting and VARIANT_ID a
 posting grouped with one (both must be refused). The reviewer used is "pwtest".
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -18,7 +20,21 @@ from playwright.sync_api import sync_playwright, expect
 
 S, REVIEWS, REVIEWED, EVAL_ID, VARIANT_ID = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4], sys.argv[5]
 SHOTS = S / "shots"
-BASE = "http://127.0.0.1:8765"
+BASE = os.environ.get("DASH_URL", "http://127.0.0.1:8765")
+
+# Safety: refuse to run unless the server writes to the SAME temporary folders given here. Otherwise a
+# dashboard already running on the port (with the real reviews/ and reviewed/) would receive test data.
+import urllib.error
+import urllib.request
+try:
+    with urllib.request.urlopen(BASE + "/api/review/storage", timeout=10) as _r:
+        _storage = json.load(_r)
+except (urllib.error.URLError, ValueError) as _e:
+    sys.exit(f"REFUSING TO RUN: the server at {BASE} does not report where it writes ({_e}); it may be an "
+             f"older dashboard using the real folders.")
+if Path(_storage["reviews_dir"]) != REVIEWS.resolve() or Path(_storage["reviewed_dir"]) != REVIEWED.resolve():
+    sys.exit(f"REFUSING TO RUN: the server at {BASE} writes to {_storage}, not to the temporary folders "
+             f"{REVIEWS} / {REVIEWED}. Start the dashboard with those --reviews-dir/--reviewed-dir, or set DASH_URL.")
 REVIEWER = "pwtest"
 DUO = "greenhouse:duolingo:8675713002"
 RH = "greenhouse:robinhood:4738660"

@@ -371,6 +371,9 @@ class App:
                     "/api/corpus": lambda: corpus(self.ctx, q),
                     "/api/corpus/posting": lambda: corpus_posting(self.ctx, g("posting_id")),
                     "/api/runs": lambda: list_runs(self.ctx),
+                    # where decisions and exports go (local paths; lets test tools refuse a real-data server)
+                    "/api/review/storage": lambda: {"reviews_dir": str(self.ctx.reviews_dir.resolve()),
+                                                    "reviewed_dir": str(self.ctx.reviewed_dir.resolve())},
                     "/api/run": lambda: run_detail(self.ctx, g("run_id")),
                     "/api/run/posting": lambda: run_posting(self.ctx, g("run_id"), g("posting_id")),
                     "/api/review": lambda: self.review.overview(g("reviewer"), _mode(environ, q), g("source")),
@@ -418,7 +421,7 @@ class App:
             raise DashboardError("method not allowed", 405)
         except (DashboardError, rw.ReviewError) as e:
             status = {400: "400 Bad Request", 403: "403 Forbidden", 404: "404 Not Found", 405: "405 Method Not Allowed",
-                      409: "409 Conflict", 413: "413 Payload Too Large"}[e.status]
+                      409: "409 Conflict", 413: "413 Payload Too Large", 503: "503 Service Unavailable"}[e.status]
             return self._json(start, {"error": str(e), **e.extra}, status)
         except an.AnnotationError as e:
             return self._json(start, {"error": str(e)}, "409 Conflict")

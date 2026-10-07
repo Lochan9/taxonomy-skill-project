@@ -44,6 +44,16 @@ tests/             pytest suite (mocked HTTP)
 
 Requires Python 3.11+ and Git.
 
+**Platforms.** The code is developed and tested on **macOS** (Apple silicon, Python 3.14).
+- The dashboard's review log is protected by an inter-process file lock: `fcntl` on macOS,
+  Linux and WSL, and `msvcrt` on native Windows.
+- **Native Windows has not been tested.** The Windows lock is covered only by mocked tests.
+- Neither module is a pip package: both come with Python on their own platform. Don't try to
+  `pip install fcntl`.
+- If the review folder cannot be locked (some network or cloud-synced folders), saving a
+  decision is refused with a clear error, and decisions are never written without the lock.
+  Use `--reviews-dir` on a local disk.
+
 ```bash
 git clone <repo-url> taxonomy-skill-project
 cd taxonomy-skill-project
@@ -399,10 +409,14 @@ new dependencies, CDNs or external requests.
   workspace file stayed byte-identical. Playwright is optional. To rerun (screenshots go to
   the git-ignored `reports/dashboard_screenshots/`):
 
+  The script first asks the server where it writes (`/api/review/storage`). It refuses to run
+  unless that is the temporary folders, so a dashboard already running on the port with real data
+  is never used. Pick a free port with `DASH_URL`:
+
   ```bash
   python -m venv /tmp/pwvenv && /tmp/pwvenv/bin/pip install playwright
-  .venv/bin/python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews --reviewed-dir /tmp/dash_reviewed &
-  /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py /tmp/dash_check /tmp/dash_reviews /tmp/dash_reviewed <eval_id> <variant_id>
+  .venv/bin/python src/dashboard.py --port 8799 --reviews-dir /tmp/dash_reviews --reviewed-dir /tmp/dash_reviewed &
+  DASH_URL=http://127.0.0.1:8799 /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py /tmp/dash_check /tmp/dash_reviews /tmp/dash_reviewed <eval_id> <variant_id>
   ```
 
 ## Reference data: ESCO (Section B)

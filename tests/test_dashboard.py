@@ -295,3 +295,10 @@ def test_real_server_sends_one_content_length_per_response(repo):
         srv.shutdown()
         srv.server_close()
     assert isinstance(dash.SECURITY_HEADERS, tuple)
+
+
+def test_storage_endpoint_reports_where_decisions_are_written(repo):
+    # used by tests/browser/verify_dashboard.py to refuse a server that writes to real data
+    s, r = call(repo["app"], "GET", "/api/review/storage")
+    assert s == 200 and r == {"reviews_dir": str(repo["ctx"].reviews_dir.resolve()),
+                              "reviewed_dir": str(repo["ctx"].reviewed_dir.resolve())}
