@@ -60,3 +60,7 @@ reports/development_annotation_review.json
 
 # --- Dashboard browser-verification screenshots (show development posting text; regenerable) ---
 reports/dashboard_screenshots/
+
+# --- Human review logs and reviewed exports: kept local until the team decides to commit them ---
+data/annotation/*/reviews/
+data/annotation/*/reviewed/

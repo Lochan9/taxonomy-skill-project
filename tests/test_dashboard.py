@@ -1,11 +1,12 @@
-"""Tests for src/dashboard.py: evidence highlighting, review persistence, invalid evidence,
-held-out data and preservation of source data. Synthetic repo in a temp dir; no server, no network."""
+"""Tests for src/dashboard.py routes: evidence highlighting, extraction view, held-out data, source
+preservation and request safety (the review workflow itself: tests/test_review_workflow.py). Synthetic repo in a temp dir; no server, no network."""
 
 from __future__ import annotations
 
 import hashlib
 import io
 import json
+import uuid
 from pathlib import Path
 from wsgiref.util import setup_testing_defaults
 
@@ -96,9 +97,27 @@ def call(app, method, path, qs="", body=None, headers=None, host="127.0.0.1:8765
     return int(out["status"][:3]), json.loads(body_bytes) if ctype.startswith("application/json") else body_bytes
 
 
-def decide(r, **kw):
-    body = {"reviewer_id": "alice", "source": DRAFT, "posting_id": r["p0"], **kw}
-    return call(r["app"], "POST", "/api/review/decision", body=body)
+def hdrs(mode="development"):
+    return {"HTTP_X_DASHBOARD": "1", **({"HTTP_X_DASHBOARD_MODE": "evaluation"} if mode == "evaluation" else {})}
+
+
+def view(r, reviewer="alice", mode="development", pid=None, source=DRAFT):
+    status, v = call(r["app"], "GET", "/api/review/posting",
+                     f"mode={mode}&source={source}&posting_id={pid or r['p0']}&reviewer={reviewer}", headers=hdrs(mode))
+    assert status == 200, v
+    return v
+
+
+def decide(r, reviewer="alice", mode="development", pid=None, request_id=None, expected_version=None,
+           expected_source_sha=None, **kw):
+    """POST a decision the way the page does: current version + draft hash + a fresh request id."""
+    pid = pid or r["p0"]
+    v = view(r, reviewer, mode, pid)
+    body = {"reviewer_id": reviewer, "mode": mode, "source": DRAFT, "posting_id": pid,
+            "expected_version": v["version"] if expected_version is None else expected_version,
+            "expected_source_sha": v["draft_sha"] if expected_source_sha is None else expected_source_sha,
+            "client_request_id": request_id or uuid.uuid4().hex, **kw}
+    return call(r["app"], "POST", "/api/review/decision", body=body, headers=hdrs(mode))
 
 
 # ------------------------------------------------------------------------- highlighting
@@ -158,126 +177,33 @@ def test_run_overview_shows_model_tokens_and_empty_states(repo):
     assert call(repo["app"], "GET", "/api/review", f"source={DRAFT}")[1]["snapshot_id"] == SNAP
 
 
-# ------------------------------------------------------------------------- review persistence
-
-
-def test_review_decisions_are_appended_with_reviewer_and_timestamp(repo):
-    s1, a = decide(repo, annotation_id="ai_draft-0001", action="accept")
-    s2, e = decide(repo, annotation_id="ai_draft-0002", action="edit", skill_statement="SQL querying",
-                   evidence_text="SQL", required_or_preferred="preferred", skill_category="tool",
-                   review_notes="DISCUSS: still unsure")
-    s3, x = decide(repo, annotation_id="ai_revised-0001", action="reject", comment="task-only")
-    s4, add = decide(repo, action="add", skill_statement="building pipelines", evidence_text="Build pipelines",
-                     required_or_preferred="unspecified")
-    assert (s1, s2, s3, s4) == (201, 201, 201, 201)
-    lines = dash.load_decisions(repo["ctx"], "alice")
-    assert [d["action"] for d in lines] == ["accept", "edit", "reject", "add"]
-    for d in lines:
-        assert d["reviewer_id"] == "alice" and d["timestamp"].endswith("Z") and d["source"] == DRAFT
-        assert d["clean_text_sha256"] == hashlib.sha256(repo["t0"].encode()).hexdigest()
-        assert d["source_skills_sha256"] == sha(repo["draft"])
-    # offsets come from the server, and the edit keeps the original draft for audit
-    assert lines[1]["record"]["evidence_start"] == repo["t0"].index("SQL") and lines[1]["original"]["skill_statement"] == "SQL"
-    assert repo["t0"][lines[3]["record"]["evidence_start"]:lines[3]["record"]["evidence_end"]] == "Build pipelines"
-    # the effective view reflects the latest decision; unresolved flags stay visible
-    status, v = call(repo["app"], "GET", "/api/review/posting", f"source={DRAFT}&posting_id={repo['p0']}&reviewer=alice")
-    states = {i["annotation_id"]: i for i in v["items"]}
-    assert states["ai_draft-0001"]["state"] == "accepted" and states["ai_draft-0002"]["state"] == "edited"
-    assert states["ai_draft-0002"]["current"]["skill_statement"] == "SQL querying"
-    assert "discuss" in states["ai_draft-0002"]["flags"] and "illustrative" in states["ai_draft-0002"]["flags"]
-    assert states["ai_revised-0001"]["state"] == "rejected" and "suggested_addition" in states["ai_revised-0001"]["flags"]
-    added = [i for i in v["items"] if i["origin"] == "reviewer"]
-    assert len(added) == 1 and added[0]["state"] == "added" and all(i["offset_valid"] for i in v["items"])
-    # reopen returns a record to pending; the log keeps every step
-    decide(repo, annotation_id="ai_draft-0001", action="reopen")
-    _, v2 = call(repo["app"], "GET", "/api/review/posting", f"source={DRAFT}&posting_id={repo['p0']}&reviewer=alice")
-    assert {i["annotation_id"]: i["state"] for i in v2["items"]}["ai_draft-0001"] == "pending"
-    assert len(dash.load_decisions(repo["ctx"], "alice")) == 5
-    # decisions are per reviewer
-    _, v3 = call(repo["app"], "GET", "/api/review/posting", f"source={DRAFT}&posting_id={repo['p0']}&reviewer=bob")
-    assert all(i["state"] == "pending" for i in v3["items"])
-
-
-def test_reviewer_added_record_can_be_edited_and_rejected(repo):
-    _, add = decide(repo, action="add", skill_statement="SQL", evidence_text="SQL", required_or_preferred="required")
-    aid = add["saved"]["annotation_id"]
-    assert aid.startswith("alice-add-")
-    assert decide(repo, annotation_id=aid, action="edit", skill_statement="SQL (querying)", evidence_text="SQL",
-                  required_or_preferred="required")[0] == 201
-    assert decide(repo, annotation_id=aid, action="reject")[0] == 201
-    _, v = call(repo["app"], "GET", "/api/review/posting", f"source={DRAFT}&posting_id={repo['p0']}&reviewer=alice")
-    it = next(i for i in v["items"] if i["annotation_id"] == aid)
-    assert it["state"] == "rejected" and it["current"]["skill_statement"] == "SQL (querying)"
-    assert decide(repo, annotation_id=aid, action="accept")[0] == 400  # accept is for draft records
-
-
-# ------------------------------------------------------------------------- invalid evidence
-
-
-@pytest.mark.parametrize("evidence, fragment", [
-    ("python", "does not occur exactly"),                    # wrong case
-    ("Build  pipelines", "does not occur exactly"),          # changed spacing
-    (" Python", "whitespace"),
-    ("", "required"),
-])
-def test_invalid_evidence_is_rejected_and_not_saved(repo, evidence, fragment):
-    status, r = decide(repo, action="add", skill_statement="x", evidence_text=evidence, required_or_preferred="required")
-    assert status == 400 and fragment in r["error"]
-    assert dash.load_decisions(repo["ctx"], "alice") == []
-
-
-def test_repeated_evidence_requires_an_explicit_occurrence(repo):
-    t = repo["t0"]
-    word = next(w for w in ("role", "Build", "in") if t.count(w) > 1)
-    status, r = decide(repo, action="add", skill_statement="x", evidence_text=word, required_or_preferred="required")
-    assert status == 400 and "choose an occurrence" in r["error"] and len(r["occurrences"]) == t.count(word)
-    second = r["occurrences"][1]
-    status, r = decide(repo, action="add", skill_statement="x", evidence_text=word, required_or_preferred="required",
-                       occurrence=2)
-    assert status == 201 and r["saved"]["record"]["evidence_start"] == second
-    assert decide(repo, action="add", skill_statement="x", evidence_text=word, required_or_preferred="required",
-                  evidence_start=second + 1)[0] == 400  # a client offset must point at a real occurrence
-    assert decide(repo, action="add", skill_statement="x", evidence_text=word, required_or_preferred="required",
-                  occurrence=99)[0] == 400
-
-
-@pytest.mark.parametrize("change, fragment", [
-    ({"required_or_preferred": "must"}, "required_or_preferred"),
-    ({"skill_statement": "  "}, "skill_statement"),
-    ({"alternative_group_id": "alt 1"}, "alternative_group_id"),
-    ({"skill_category": "magic"}, "skill_category"),
-    ({"reviewer_id": "Alice!"}, "reviewer_id"),
-    ({"reviewer_id": "ai_revised"}, "person"),
-    ({"source": "annotator-a"}, "source"),
-    ({"action": "approve"}, "action"),
-])
-def test_invalid_fields_are_rejected(repo, change, fragment):
-    body = {"reviewer_id": "alice", "source": DRAFT, "posting_id": repo["p0"], "action": "add",
-            "skill_statement": "SQL", "evidence_text": "SQL", "required_or_preferred": "required", **change}
-    status, r = call(repo["app"], "POST", "/api/review/decision", body=body)
-    assert status == 400 and fragment in r["error"]
-
-
-# ------------------------------------------------------------------------- held-out data
-
 
 def test_evaluation_texts_and_labels_stay_out(repo):
     ev = repo["ev"][0]
     app = repo["app"]
     assert call(app, "GET", "/api/corpus/posting", f"posting_id={ev}")[0] == 403
-    assert call(app, "GET", "/api/review/posting", f"source={DRAFT}&posting_id={ev}")[0] == 403
+    assert call(app, "GET", "/api/review/posting", f"source={DRAFT}&posting_id={ev}&reviewer=alice")[0] == 403
     assert call(app, "GET", "/api/run/posting", f"run_id=skx-test&posting_id={ev}")[0] == 403
     assert call(app, "GET", "/api/locate", f"posting_id={ev}&evidence=Python")[0] == 403
-    status, r = call(app, "POST", "/api/review/decision", body={"reviewer_id": "alice", "source": DRAFT, "posting_id": ev,
-                                                                "action": "add", "skill_statement": "x",
-                                                                "evidence_text": "Python", "required_or_preferred": "required"})
+    # development mode cannot write to an evaluation posting
+    status, _ = call(app, "POST", "/api/review/decision", body={
+        "reviewer_id": "alice", "mode": "development", "source": DRAFT, "posting_id": ev, "action": "add",
+        "expected_version": 0, "client_request_id": uuid.uuid4().hex, "skill_statement": "x",
+        "evidence_text": "Python", "required_or_preferred": "required"})
     assert status == 403
+    # evaluation mode needs the explicit header, for reads and writes
+    assert call(app, "GET", "/api/review/posting", f"mode=evaluation&posting_id={ev}&reviewer=alice")[0] == 403
+    assert call(app, "GET", "/api/review", "mode=evaluation&reviewer=alice")[0] == 403
+    assert call(app, "GET", "/api/locate", f"mode=evaluation&posting_id={ev}&evidence=Python")[0] == 403
+    assert call(app, "POST", "/api/review/decision", body={"reviewer_id": "alice", "mode": "evaluation",
+                                                           "posting_id": ev, "action": "add"})[0] == 403
     status, c = call(app, "GET", "/api/corpus")
     assert status == 200 and "clean_text" not in json.dumps(c)          # listings never carry texts
     assert {p["posting_id"] for p in c["postings"] if p["held_out"]} >= set(repo["ev"])
-    status, o = call(app, "GET", "/api/review", f"source={DRAFT}")
+    status, o = call(app, "GET", "/api/review", f"source={DRAFT}&reviewer=alice")
     assert {p["posting_id"] for p in o["postings"]} == set(repo["dev"])  # development only
     assert call(app, "GET", "/api/review", "source=annotator-a")[0] == 400  # human folders are not loaded
+
 
 
 def test_variants_grouped_with_evaluation_postings_are_held_out(repo):
@@ -313,13 +239,13 @@ def test_source_data_is_never_modified(repo):
                      ("/api/review", f"source={DRAFT}&reviewer=alice"),
                      ("/api/review/posting", f"source={DRAFT}&posting_id={repo['p0']}&reviewer=alice")]:
         assert call(app, "GET", path, qs)[0] == 200
-    decide(repo, annotation_id="ai_draft-0001", action="edit", skill_statement="Python 3", evidence_text="Python",
-           required_or_preferred="required")
-    decide(repo, annotation_id="ai_draft-0002", action="reject")
-    decide(repo, action="add", skill_statement="x", evidence_text="SQL", required_or_preferred="required")
+    assert decide(repo, annotation_id="ai_draft-0001", action="edit", skill_statement="Python 3",
+                  evidence_text="Python", required_or_preferred="required")[0] == 201
+    assert decide(repo, annotation_id="ai_draft-0002", action="reject")[0] == 201
+    assert decide(repo, action="add", skill_statement="x", evidence_text="SQL", required_or_preferred="required")[0] == 201
     assert {p: sha(p) for p in watched} == before
-    written = [p for p in repo["root"].rglob("*") if p.is_file() and "reviews" in p.parts]
-    assert [p.name for p in written] == ["decisions.jsonl"]
+    written = sorted(p.name for p in repo["root"].rglob("*") if p.is_file() and "reviews" in p.parts)
+    assert written == ["decisions.jsonl", "decisions.jsonl.lock"]
 
 
 def test_requests_must_be_local_and_from_the_page(repo):
@@ -330,7 +256,7 @@ def test_requests_must_be_local_and_from_the_page(repo):
     assert call(app, "POST", "/api/review/decision", body=body, headers={})[0] == 403   # no X-Dashboard header
     assert call(app, "GET", "/static/../dashboard.py")[0] == 404
     assert call(app, "GET", "/figures/../../db.sqlite")[0] == 404
-    assert dash.load_decisions(repo["ctx"], "alice") == []
+    assert repo["app"].review.events("alice") == []
 
 
 def test_dashboard_never_reads_credentials():

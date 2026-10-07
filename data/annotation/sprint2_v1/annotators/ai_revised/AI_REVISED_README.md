@@ -1,0 +1,242 @@
+# ai_revised workspace: provenance and change list
+
+**What this is:** a candidate revision of `ai_draft` (left unchanged). It applies the concrete wording and evidence revisions from the AI review report `reports/development_annotation_review_report.md`, and adds the report's 49 potential missing skills as **flagged suggestions**. Claude Code rechecked every change against the unchanged `clean_text` and recomputed every offset.
+
+**What this is not:** human-reviewed data or gold. The report's own sign-off section is still *pending* (reviewer, date, conventions, accepted corrections). All 20 development postings stay `in_progress` (unfinished), with no `annotator_id` or `reviewed_at`. The 80 evaluation postings are `not_started` and untouched.
+
+**Provenance in `review_notes`:** carried rows start with `AI-REVISED: from ai_draft-NNNN …`, followed by `review report: Keep|Revise|Discuss` and any changes. Added rows start with `AI-SUGGESTED ADDITION:` and `DISCUSS:`. Draft annotation ids are kept for traceability; new rows (split parts, additions) use `ai_revised-NNNN`.
+
+**Report conventions not adopted** (still for the team to decide): decision 1 (`mention_relation=illustrative`, examples as `unspecified`) is beyond guidelines v0.2.2, so illustrative examples keep the sentence value with `DISCUSS: illustrative list`. Decisions 2 (hierarchy), 5 (alternative groups) and 6 (provenance) are applied only where a row-level recommendation said so.
+
+## Counts
+
+- ai_draft: 437 rows → ai_revised: 492 rows (+6 from 4 splits, +49 flagged additions)
+- Report decisions: Keep 283 (unchanged), Revise 75 (74 applied, 1 not applicable), Discuss 79 (kept unresolved)
+- Values: {'unspecified': 146, 'required': 273, 'preferred': 73}; alternative groups: 8 (unchanged)
+- Remaining discussion: 222 rows (report Discuss and/or `DISCUSS:`), plus 11 unresolved items without records
+
+## Revisions applied (Revise)
+
+- `ai_draft-0012` (Senior Product Designer): evidence 'LLMs' [2361:2365] -> full clause [2348:2404]
+- `ai_draft-0014` (Senior Product Designer): evidence 'motion' [2485:2491] -> full clause [2477:2525]
+- `ai_draft-0019` (Senior Learning Designer, Indian Languages): evidence 'grammar' [2703:2710] -> full clause [2684:2794]
+- `ai_draft-0020` (Senior Learning Designer, Indian Languages): evidence 'pronunciation' [2712:2725] -> full clause [2684:2794]
+- `ai_draft-0022` (Senior Learning Designer, Indian Languages): evidence 'registers' [2743:2752] -> full clause [2684:2794]
+- `ai_draft-0023` (Senior Learning Designer, Indian Languages): evidence 'variation' [2754:2763] -> full clause [2684:2794]
+- `ai_draft-0043` (Senior Learning Designer, Indian Languages): evidence 'recruit' [2375:2382] -> full clause [2365:2480]
+- `ai_draft-0044` (Senior Learning Designer, Indian Languages): evidence 'onboard' [2384:2391] -> full clause [2365:2480]
+- `ai_draft-0059` (Senior Creative, Social): evidence 'concepting' [3414:3424] -> full clause [3373:3461]
+- `ai_draft-0060` (Senior Creative, Social): evidence 'directing' [3426:3435] -> full clause [3373:3461]
+- `ai_draft-0074` (Data Scientist, Finance): evidence 'Python' [2979:2985] -> full clause [2964:3019]
+- `ai_draft-0080` (Data Scientist, Finance): evidence 'forecasts' [1923:1932] -> full clause [1889:1959]
+- `ai_draft-0102` (Senior Software Test Engineer): evidence 'designing' [4512:4521] -> full clause [4512:4587]
+- `ai_draft-0103` (Senior Software Test Engineer): evidence 'building' [4523:4531] -> full clause [4512:4587]
+- `ai_draft-0110` (Senior Software Test Engineer): evidence 'Automation Frameworks' [5395:5416] -> full clause [5424:5459]
+- `ai_draft-0134` (Senior Software Test Engineer): evidence 'manual' [2053:2059] -> full clause [2045:2079]
+- `ai_draft-0137` (Senior Software Test Engineer): evidence 'regression' [2321:2331] -> full clause [2313:2429]
+- `ai_draft-0138` (Senior Software Test Engineer): evidence 'integration' [2333:2344] -> full clause [2313:2429]
+- `ai_draft-0150` (Senior Director, Corporate Strategy): evidence 'monetization' [3434:3446] -> full clause [3382:3471]
+- `ai_draft-0153` (Senior Director, Corporate Strategy): evidence 'building' [3571:3579] -> full clause [3560:3597]
+- `ai_draft-0155` (Senior Director, Corporate Strategy): evidence 'analytical' [3700:3710] -> full clause [3690:3753]
+- `ai_draft-0158` (Senior Director, Corporate Strategy): evidence 'market' [2087:2093] -> full clause [2087:2129]
+- `ai_draft-0159` (Senior Director, Corporate Strategy): evidence 'competitive' [2095:2106] -> full clause [2087:2129]
+- `ai_draft-0175` (Manager, Recruiting - Sales): evidence 'mentor' [531:537] -> full clause [514:588]
+- `ai_draft-0191` (Software Engineer Intern (London, United Kingdom) (Summer 2027)): evidence 'write' [2905:2910] -> full clause [2826:2936]
+- `ai_draft-0192` (Software Engineer Intern (London, United Kingdom) (Summer 2027)): evidence 'debug' [2912:2917] -> full clause [2826:2936]
+- `ai_draft-0203` (Brand Designer,  Product Launches): evidence 'storyboards' [2103:2114] -> full clause [1967:2130]
+- `ai_draft-0204` (Brand Designer,  Product Launches): evidence 'styleframes' [2090:2101] -> full clause [1967:2130]
+- `ai_draft-0205` (Brand Designer,  Product Launches): evidence 'concepting' [2120:2130] -> full clause [1967:2130]
+- `ai_draft-0208` (Brand Designer,  Product Launches): evidence 'composition' [2454:2465] -> full clause [2436:2515]
+- `ai_draft-0209` (Brand Designer,  Product Launches): statement 'colour' -> 'colour use in visual design'
+- `ai_draft-0210` (Brand Designer,  Product Launches): evidence 'pacing' [2478:2484] -> full clause [2436:2515]
+- `ai_draft-0221` (Director, Marketing - Figma Weave (New York, United States)): evidence 'Set marketing strategy' [2197:2219] -> full clause [2770:2870]; value unspecified -> required
+- `ai_draft-0225` (Director, Marketing - Figma Weave (New York, United States)): evidence 'brand' [3195:3200] -> full clause [3151:3223]
+- `ai_draft-0227` (Director, Marketing - Figma Weave (New York, United States)): evidence 'Hire' [2083:2087] -> full clause [2083:2140]
+- `ai_draft-0228` (Director, Marketing - Figma Weave (New York, United States)): evidence 'building' [3301:3309] -> full clause [3290:3327]
+- `ai_draft-0233` (Engineering Manager, International): statement 'end-to-end product management' -> 'end-to-end product delivery management'
+- `ai_draft-0235` (Engineering Manager, International): evidence 'reliability' [4089:4100] -> full clause [4029:4130]
+- `ai_draft-0236` (Engineering Manager, International): evidence 'scalability' [4102:4113] -> full clause [4029:4130]
+- `ai_draft-0237` (Engineering Manager, International): evidence 'performance' [4119:4130] -> full clause [4029:4130]
+- `ai_draft-0243` (Engineering Manager, International): evidence 'feedback' [4485:4493] -> full clause [4416:4493]
+- `ai_draft-0244` (Engineering Manager, International): evidence 'recruit' [2176:2183] -> full clause [2167:2253]
+- `ai_draft-0245` (Engineering Manager, International): evidence 'onboarding' [3354:3364] -> full clause [3339:3420]
+- `ai_draft-0258` (Senior Software Engineer, Data Engineering): evidence 'Analytics' [3398:3407] -> full clause [3337:3436]
+- `ai_draft-0280` (Senior ML Algorithm Scientist): evidence 'training' [1278:1286] -> full clause [1252:1325]
+- `ai_draft-0281` (Senior ML Algorithm Scientist): evidence 'evaluating' [1288:1298] -> full clause [1252:1325]
+- `ai_draft-0293` (Director, Product Design Operations): evidence 'working across integrated hardware and software products' [4013:4069] -> full clause [4002:4069]; statement 'integrated hardware and software products' -> 'working across integrated hardware/software products'
+- `ai_draft-0302` (Director, Product Design Operations): evidence 'decision-making' [4696:4711] -> full clause [4635:4753]
+- `ai_draft-0303` (Director, Product Design Operations): evidence 'relationship-building' [4882:4903] -> full clause [4875:4924]
+- `ai_draft-0305` (Director, Product Design Operations): evidence 'written' [5017:5024] -> full clause [5005:5068]
+- `ai_draft-0306` (Director, Product Design Operations): evidence 'verbal' [5026:5032] -> full clause [5005:5068]
+- `ai_draft-0308` (Director, Product Design Operations): statement 'customer feedback synthesis' -> 'customer-feedback synthesis'
+- `ai_draft-0310` (Director, Product Design Operations): evidence 'product reporting' [2764:2781] -> full clause [2728:2781]; statement 'product reporting' -> 'setting product-reporting standards'
+- `ai_draft-0311` (Director, Product Design Operations): evidence 'dashboards' [2783:2793] -> full clause [2728:2793]; statement 'product dashboards' -> 'setting product-dashboard standards'
+- `ai_draft-0316` (Executive Director, Corporate Strategy & Intelligence): evidence 'quantitative' [4080:4092] -> full clause [4080:4124]
+- `ai_draft-0329` (Executive Director, Corporate Strategy & Intelligence): not applied: 'build commercial models' is not a contiguous span ('build, own, and critically challenge commercial models'); evidence kept; model critique is already a separate record
+- `ai_draft-0339` (Staff AI Data Transformation Architect): evidence 'SOPs' [5101:5105] -> full clause [5066:5130]
+- `ai_draft-0340` (Staff AI Data Transformation Architect): evidence 'playbooks' [6361:6370] -> full clause [6324:6451]
+- `ai_draft-0341` (Staff AI Data Transformation Architect): evidence 'training' [6376:6384] -> full clause [6324:6451]
+- `ai_draft-0353` (Staff AI Data Transformation Architect): evidence 'agents' [5679:5685] -> full clause [5655:5699]
+- `ai_draft-0358` (Staff AI Data Transformation Architect): evidence 'written' [6462:6469] -> full clause [6455:6501]
+- `ai_draft-0364` (Staff AI Data Transformation Architect): evidence 'RAG' [7554:7557] -> full clause [7516:7612]
+- `ai_draft-0388` (People Partner Intern (Summer 2027)): evidence 'written' [2333:2340] -> full clause [2326:2372]
+- `ai_draft-0400` (Internal Audit Senior Associate): evidence 'communicate' [4208:4219] -> full clause [4193:4283]
+- `ai_draft-0405` (Internal Audit Senior Associate): evidence 'licensing' [4909:4918] -> full clause [4892:4976]
+- `ai_draft-0415` (Internal Audit Senior Associate): evidence 'planning' [2011:2019] -> full clause [1961:2078]
+- `ai_draft-0416` (Internal Audit Senior Associate): evidence 'execution' [2024:2033] -> full clause [1961:2078]
+- `ai_draft-0422` (Internal Audit Senior Associate): evidence 'walkthroughs' [2907:2919] -> full clause [2872:2961]
+- `ai_draft-0433` (Senior AI Researcher): evidence 'cross-functional AI projects' [2443:2471] -> full clause [2408:2471]; statement 'cross-functional AI project work' -> 'cross-functional collaboration on AI projects'
+- `ai_draft-0434` (Senior AI Researcher): evidence 'verbal' [2320:2326] -> full clause [2313:2359]
+- `ai_draft-0436` (Senior AI Researcher): evidence 'biomedicine' [2488:2499] -> full clause [2474:2525]
+- `ai_draft-0047` (Senior Learning Designer, Indian Languages): split 'Indo-Aryan vs Dravidian typological and pedagogical differences' -> 'Indo-Aryan vs Dravidian typological differences' + 'Indo-Aryan vs Dravidian pedagogical differences'
+- `ai_draft-0106` (Senior Software Test Engineer): split 'testing health, wellness, wearable or data-driven applications' -> 'testing health applications' + 'testing wellness applications' + 'testing wearable applications' + 'testing data-driven applications'
+- `ai_draft-0199` (Software Engineer Intern (London, United Kingdom) (Summer 2027)): split 'feature breakdown and timeline planning' -> 'feature decomposition' + 'timeline planning'
+- `ai_draft-0343` (Staff AI Data Transformation Architect): split 'LLMs and implementation patterns' -> 'LLM knowledge' + 'LLM implementation patterns'
+
+## Flagged additions (49)
+
+- `ai_revised-0007` (Senior Product Designer): **Cross-functional design collaboration** (unspecified) [1620:1663]
+- `ai_revised-0008` (Senior Product Designer): **Shipping products at scale** (required) [1996:2033] — conflicts with the draft's unresolved item (experience/setting by default, §2)
+- `ai_revised-0009` (Senior Learning Designer, Indian Languages): **Applying linguistics to unfamiliar languages** (required) [3769:3805]
+- `ai_revised-0010` (Senior Learning Designer, Indian Languages): **Learning-content difficulty calibration** (unspecified) [1941:1963]
+- `ai_revised-0011` (Senior Learning Designer, Indian Languages): **Planning product roadmaps** (unspecified) [2115:2128]
+- `ai_revised-0012` (Senior Learning Designer, Indian Languages): **Using human-in-the-loop AI workflows** (unspecified) [1660:1699] — related to the P record 'building human-in-the-loop generative-AI workflows' (using vs building)
+- `ai_revised-0013` (Senior Creative, Social): **Cross-functional creative collaboration** (unspecified) [2240:2329] — overlaps R 'collaboration' ("make the work better through collaboration")
+- `ai_revised-0014` (Data Scientist, Finance): **Cross-functional collaboration on financial data** (unspecified) [2189:2268]
+- `ai_revised-0015` (Data Scientist, Finance): **Implementing scalable data solutions** (unspecified) [2524:2567]
+- `ai_revised-0016` (Director, Marketing - Figma Weave (New York, United States)): **Cross-functional marketing collaboration** (unspecified) [2309:2362] — no existing collaboration record in this posting
+- `ai_revised-0017` (Software Engineer Intern (London, United Kingdom) (Summer 2027)): **Giving peer feedback** (unspecified) [2292:2306] — related to U 'code review' ("Share feedback and participate in peer code review")
+- `ai_revised-0018` (Software Engineer Intern (London, United Kingdom) (Summer 2027)): **Maintaining software features** (unspecified) [2246:2289] — same clause as U 'software testing' / 'software documentation'; evidence overlaps: software documentation, software testing
+- `ai_revised-0019` (Manager, Recruiting - Sales): **Improving recruiting processes** (unspecified) [1628:1676]
+- `ai_revised-0020` (Senior Director, Corporate Strategy): **Developing growth strategy** (unspecified) [1882:1927] — evidence is part of the corporate-strategy duty; overlaps R 'corporate strategy'
+- `ai_revised-0021` (Senior Director, Corporate Strategy): **Developing business models** (unspecified) [2482:2508] — distinct from R 'understanding business models' (define vs understand)
+- `ai_revised-0022` (Senior Software Test Engineer): **Validating data flows** (unspecified) [2170:2211]
+- `ai_revised-0023` (Senior Software Test Engineer): **Validating algorithm accuracy** (unspecified) [2170:2211] — evidence overlaps: validating data flows
+- `ai_revised-0024` (Senior Software Test Engineer): **Big-data monitoring** (unspecified) [2438:2495]
+- `ai_revised-0025` (Senior Software Test Engineer): **Mobile test automation** (unspecified) [2704:2757] — overlaps R 'test automation frameworks'
+- `ai_revised-0026` (Senior Software Test Engineer): **API test automation** (unspecified) [2704:2757] — overlaps R 'test automation frameworks'; evidence overlaps: mobile test automation
+- `ai_revised-0027` (Director, Product Design Operations): **Organisational judgement** (required) [4428:4458] — ability or trait? (§2 personality without an ability)
+- `ai_revised-0028` (Director, Product Design Operations): **Program management** (unspecified) [3545:3573]
+- `ai_revised-0029` (Senior ML Algorithm Scientist): **Evaluating prototype sensors** (unspecified) [1853:1912]
+- `ai_revised-0030` (Senior ML Algorithm Scientist): **Cross-functional algorithm integration** (unspecified) [2141:2170]
+- `ai_revised-0031` (Staff AI Data Transformation Architect): **Designing AI evaluation frameworks** (unspecified) [2175:2196]
+- `ai_revised-0032` (Staff AI Data Transformation Architect): **AI token management** (unspecified) [2656:2672]
+- `ai_revised-0033` (Staff AI Data Transformation Architect): **Change management** (unspecified) [2929:2956]
+- `ai_revised-0034` (Staff AI Data Transformation Architect): **Ontology design** (unspecified) [3505:3513]
+- `ai_revised-0035` (Staff AI Data Transformation Architect): **Semantic-layer design** (unspecified) [3515:3529]
+- `ai_revised-0036` (Staff AI Data Transformation Architect): **Knowledge-graph architecture** (unspecified) [3531:3546]
+- `ai_revised-0037` (Staff AI Data Transformation Architect): **Supporting ML workflows** (preferred) [6792:6826] — category of 'MLflow, Feature Store, or Databricks Model Serving'; MLflow already a P record
+- `ai_revised-0038` (Staff AI Data Transformation Architect): **Feature Store** (preferred) [6837:6850] — example in 'MLflow, Feature Store, or Databricks Model Serving'; not grouped (report decision 5)
+- `ai_revised-0039` (Staff AI Data Transformation Architect): **Databricks Model Serving** (preferred) [6855:6879] — example in 'MLflow, Feature Store, or Databricks Model Serving'; not grouped (report decision 5)
+- `ai_revised-0040` (Staff AI Data Transformation Architect): **Configuration as code** (preferred) [7347:7368] — illustrative example ('e.g., Python, shell, configuration-as-code'); §3b
+- `ai_revised-0041` (Staff AI Data Transformation Architect): **Lakehouse knowledge** (required) [5885:5918] — illustrative ('including lakehouse') under R 'enterprise data platforms'; §3b
+- `ai_revised-0042` (Executive Director, Corporate Strategy & Intelligence): **Therapeutic-area knowledge** (required) [1975:2000] — illustrative ('including therapeutic area dynamics') under R 'drug development landscape knowledge'; §3b
+- `ai_revised-0043` (Executive Director, Corporate Strategy & Intelligence): **Epidemiology knowledge** (unspecified) [1480:1492]
+- `ai_revised-0044` (Executive Director, Corporate Strategy & Intelligence): **Pricing knowledge** (unspecified) [1541:1573] — distinct from R 'market access' (regulatory list); here pricing & market access dynamics are integrated in analyses
+- `ai_revised-0045` (Executive Director, Corporate Strategy & Intelligence): **Strategic-fit analysis** (unspecified) [1336:1358]
+- `ai_revised-0046` (Executive Director, Corporate Strategy & Intelligence): **Developing competitive intelligence systems** (unspecified) [2078:2125] — replaces the draft's rejected 'synthesising intelligence' label (unresolved item)
+- `ai_revised-0047` (Senior Software Engineer, Data Engineering): **Software engineering** (required) [2973:3013] — no existing duplicate in this posting; 'production Python programming' is narrower
+- `ai_revised-0048` (Senior Software Engineer, Data Engineering): **Ensuring data quality** (unspecified) [1608:1650]
+- `ai_revised-0049` (Engineering Manager, International): **Setting technical direction** (unspecified) [3044:3070]
+- `ai_revised-0050` (Engineering Manager, International): **Prioritising engineering work** (unspecified) [3075:3090]
+- `ai_revised-0051` (Engineering Manager, International): **Setting team goals** (unspecified) [2953:2974]
+- `ai_revised-0052` (Internal Audit Senior Associate): **Understanding fintech risks** (unspecified) [1867:1952] — summary wording ('You will be … with a strong understanding of …'); value U
+- `ai_revised-0053` (Internal Audit Senior Associate): **Understanding fintech controls** (unspecified) [1867:1952] — summary wording; value U; evidence overlaps: understanding fintech risks
+- `ai_revised-0054` (Internal Audit Senior Associate): **Understanding fintech processes** (unspecified) [1867:1952] — summary wording; value U; evidence overlaps: understanding fintech controls, understanding fintech risks
+- `ai_revised-0055` (Internal Audit Senior Associate): **Working under ambiguity** (required) [4333:4352] — ability or trait?
+
+## Report Discuss rows kept unresolved (79)
+
+- `ai_draft-0003` (Senior Product Designer) *prototyping*: Generic prototyping and high-fidelity prototyping overlap. Prefer one required high-fidelity prototyping record unless the team deliberately distinguishes the learning-experience scope.
+- `ai_draft-0011` (Senior Product Designer) *using AI for ideation*: AI is the parent concept of LLMs. Both are explicitly mentioned, but decide whether to retain both at different levels; do not claim they are unrelated skills.
+- `ai_draft-0015` (Senior Product Designer) *UI animation*: Motion design and animation may describe the same UI capability here. Prefer one UI motion/animation skill unless the scope distinction is justified.
+- `ai_draft-0058` (Senior Creative, Social) *short-form video*: Umbrella short-form-video expertise overlaps concepting, directing and production. Keep it only under an explicit parent/child annotation policy.
+- `ai_draft-0069` (Illustrator, Intern) *Figma*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0070` (Illustrator, Intern) *Photoshop*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0075` (Data Scientist, Finance) *programming in a language similar to Python*: Generic programming-language category is not a concrete alternative tool. Preserve the open alternative semantics without suggesting this is an independently required second skill.
+- `ai_draft-0088` (Data Scientist, Finance) *SaaS business models*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0089` (Data Scientist, Finance) *subscription business models*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0090` (Data Scientist, Finance) *usage-based business models*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0091` (Data Scientist, Finance) *consumption-based business models*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0092` (Data Scientist, Finance) *IPO readiness*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0093` (Data Scientist, Finance) *public company reporting*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0094` (Data Scientist, Finance) *SOX controls*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0095` (Data Scientist, Finance) *audit support*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0096` (Data Scientist, Finance) *modern analytics and data engineering tools*: Broad tool category overlaps named examples. Establish a consistent parent/child policy before scoring.
+- `ai_draft-0097` (Data Scientist, Finance) *DBT*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0098` (Data Scientist, Finance) *Snowflake*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0099` (Data Scientist, Finance) *Git*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0100` (Data Scientist, Finance) *Spark*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0101` (Data Scientist, Finance) *Presto*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0111` (Senior Software Test Engineer) *Pytest*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0112` (Senior Software Test Engineer) *Appium*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0113` (Senior Software Test Engineer) *Playwright*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0115` (Senior Software Test Engineer) *Jenkins*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0116` (Senior Software Test Engineer) *GitHub Actions*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0117` (Senior Software Test Engineer) *GitLab CI*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0123` (Senior Software Test Engineer) *GitHub Copilot*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0124` (Senior Software Test Engineer) *Claude Code*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0125` (Senior Software Test Engineer) *Cursor*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0128` (Senior Software Test Engineer) *testing time-series features*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0129` (Senior Software Test Engineer) *testing sensor-driven features*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0165` (Senior Director, Corporate Strategy) *subscription business models*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0166` (Senior Director, Corporate Strategy) *consumer-facing business models*: Consumer-facing and subscription are overlapping business-model dimensions; OR wording does not prove distinct interchangeable competencies.
+- `ai_draft-0167` (Manager, Recruiting - Sales) *recruiting*: Recruiting is a parent of SaaS sales recruiting. Retain both only under an explicit parent/child policy.
+- `ai_draft-0182` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *C++*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0183` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *JavaScript*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0184` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *Python*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0185` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *Java*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0186` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *computer science fundamentals*: Computer science fundamentals overlaps the explicit data structures and algorithms records; avoid inflating gold counts with an unbounded parent label.
+- `ai_draft-0194` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *GitHub Copilot*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0195` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *ChatGPT*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0196` (Software Engineer Intern (London, United Kingdom) (Summer 2027)) *Claude*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0213` (Brand Designer,  Product Launches) *creating basic animations*: Basic animation and motion tests overlap. Review whether this is a genuine alternative capability group or two ways of demonstrating motion work.
+- `ai_draft-0214` (Brand Designer,  Product Launches) *creating motion tests*: See ai_draft-0213: do not decide group meaning from the word or alone.
+- `ai_draft-0251` (Senior Software Engineer, Data Engineering) *open-source data processing frameworks*: Framework category overlaps tool mentions; keep a consistent hierarchy policy.
+- `ai_draft-0253` (Senior Software Engineer, Data Engineering) *Flink*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0255` (Senior Software Engineer, Data Engineering) *Presto*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0256` (Senior Software Engineer, Data Engineering) *Spark SQL*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0270` (Senior ML Algorithm Scientist) *PyTorch*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0271` (Senior ML Algorithm Scientist) *TensorFlow*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0272` (Senior ML Algorithm Scientist) *scientific computing libraries*: Scientific-computing category overlaps the named library records. Parent/child policy required.
+- `ai_draft-0273` (Senior ML Algorithm Scientist) *NumPy*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0274` (Senior ML Algorithm Scientist) *SciPy*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0275` (Senior ML Algorithm Scientist) *pandas*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0276` (Senior ML Algorithm Scientist) *matplotlib*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0284` (Senior ML Algorithm Scientist) *Transformers*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0285` (Senior ML Algorithm Scientist) *RNNs*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0286` (Senior ML Algorithm Scientist) *probabilistic models*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0298` (Director, Product Design Operations) *executive narrative development*: Executive narrative development and recommendations are distinct if the team keeps written synthesis versus decision advice separate; avoid duplicating identical generic labels.
+- `ai_draft-0345` (Staff AI Data Transformation Architect) *Cursor*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0346` (Staff AI Data Transformation Architect) *Claude*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0347` (Staff AI Data Transformation Architect) *ChatGPT Enterprise*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0348` (Staff AI Data Transformation Architect) *Glean*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0349` (Staff AI Data Transformation Architect) *Gemini*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0375` (Staff AI Data Transformation Architect) *Databricks Lakehouse Federation*: A product implementation and broader query-federation knowledge are nested, not necessarily two interchangeable skills. Do not auto-finalise the OR group.
+- `ai_draft-0376` (Staff AI Data Transformation Architect) *cross-platform query federation*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0377` (Staff AI Data Transformation Architect) *scripting*: Scripting and configuration automation overlap. Keep source OR wording as a relation, but review the group as nested methods.
+- `ai_draft-0378` (Staff AI Data Transformation Architect) *configuration automation*: Review whether this source OR list states a requirement alternative, describes domains, or lists overlapping concepts. Retain source context; do not infer a closed set.
+- `ai_draft-0379` (Staff AI Data Transformation Architect) *Python*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0380` (Staff AI Data Transformation Architect) *shell scripting*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0407` (Internal Audit Senior Associate) *MiCA*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0408` (Internal Audit Senior Associate) *CASP/VASP*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0409` (Internal Audit Senior Associate) *PSD2*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0410` (Internal Audit Senior Associate) *MiFID II*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0411` (Internal Audit Senior Associate) *DORA*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0412` (Internal Audit Senior Associate) *GDPR*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0413` (Internal Audit Senior Associate) *AMLD*: Named example/contextual list member. The parent requirement does not establish this item as individually mandatory. Preserve mention relation and review status convention.
+- `ai_draft-0417` (Internal Audit Senior Associate) *audit reporting*: Audit reporting duplicates audit report writing unless it deliberately includes a separate reporting capability. Recommend merging into audit report writing.
+
+## Unresolved items without records (from ai_draft)
+
+- Senior Product Designer: 'Experience shipping products at scale in a product organization' (R): experience/setting by default (§2); no record
+- Senior Product Designer: 'A big appetite for feedback' (R): receptiveness to feedback – trait or skill? no record
+- Senior Product Designer: 'The desire to make decisions fast' (P): a desire/trait; no record
+- Senior Learning Designer, Indian Languages: Six Hindi linguistic-knowledge records (grammar … learner challenges): too granular?
+- Executive Director, Corporate Strategy & Intelligence: 'therapeutic area dynamics' is a fourth example in the drug-development 'including' list; not suggested, not recorded
+- Executive Director, Corporate Strategy & Intelligence: 'Grow and refine a real-time intelligence system' – record 'intelligence system development' (U) instead of the rejected label?
+- Staff AI Data Transformation Architect: 'MLflow, Feature Store, or Databricks Model Serving' (P): an 'or' list; only MLflow suggested – group or not?
+- People Partner Intern (Summer 2027): 'Organized and detail-oriented': attribute or skill? (§2 personality without an ability)
+- Internal Audit Senior Associate: 'including exposure to Operations, Risk Management, Compliance, or IT/Information Security' (R): exposure areas within auditing – record as domain knowledge (alternatives)? not recorded
+- Senior AI Researcher: 'PhD in ML, NLP, computer vision, or the equivalent practical experience': academic qualification (§2), not recorded; does 'or the equivalent practical experience' make ML/NLP/CV skills?
+- Senior AI Researcher: 'willingness to learn a must' (R wording): attitude, not an ability – no record

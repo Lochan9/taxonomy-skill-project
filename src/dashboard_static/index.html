@@ -61,17 +61,40 @@
 
     <!-- 3. Annotation review -->
     <section id="view-review" class="view" hidden>
-      <div class="banner ai">AI-generated, unreviewed drafts (development postings only). Your decisions are saved
-        separately; drafts and clean text are never modified.</div>
-      <div class="filters">
-        <label>Reviewer ID <input id="reviewer" placeholder="e.g. alice" autocomplete="off"></label>
-        <label>Draft source <select id="review-source">
+      <div id="review-banner" class="banner ai"></div>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Review mode">
+          <button type="button" data-mode="development" aria-pressed="true">Development review (AI drafts)</button>
+          <button type="button" data-mode="evaluation" aria-pressed="false">Evaluation annotation (independent)</button>
+        </div>
+        <label>Reviewer ID <input id="reviewer" placeholder="e.g. alice" autocomplete="off" spellcheck="false"></label>
+        <button type="button" id="reviewer-set">Use this ID</button>
+        <label id="source-wrap">Draft source <select id="review-source">
           <option value="ai_revised">ai_revised</option><option value="ai_draft">ai_draft</option></select></label>
-        <span id="review-msg" class="muted"></span>
+        <span id="review-progress" class="muted"></span>
+        <button type="button" id="export-open" class="ghost">Export…</button>
       </div>
-      <div class="split">
-        <ul id="review-postings" class="list"></ul>
-        <article id="review-detail" class="detail empty-state">Enter a reviewer ID, then select a posting.</article>
+      <div id="save-status" class="save-status" role="status" aria-live="polite"></div>
+      <div id="eval-gate" class="gate" hidden>
+        <h2>Independent evaluation annotation</h2>
+        <p>This mode shows the original text of the 80 held-out evaluation postings, each starting with an
+          <strong>empty</strong> skill list. No AI drafts, extraction results, predictions or suggested highlights are
+          shown here, and none should be consulted for these postings.</p>
+        <label class="check"><input type="checkbox" id="eval-confirm"> I will annotate these postings independently,
+          from the original text only.</label>
+        <button type="button" id="eval-start" disabled>Start evaluation annotation</button>
+      </div>
+      <div id="review-empty" class="detail empty-state">Enter your reviewer ID and press “Use this ID”.</div>
+      <div id="review-grid" class="review-grid" hidden>
+        <aside class="review-nav">
+          <div class="row nav-buttons">
+            <button type="button" id="prev-posting" class="ghost">← Previous</button>
+            <button type="button" id="next-posting" class="ghost">Next →</button>
+          </div>
+          <ul id="review-postings" class="list"></ul>
+        </aside>
+        <section id="review-text" class="detail pane"></section>
+        <section id="review-cards" class="detail pane"></section>
       </div>
     </section>
   </main>
@@ -79,25 +102,71 @@
   <dialog id="edit-dialog">
     <form id="edit-form" method="dialog">
       <h2 id="edit-title">Edit skill</h2>
-      <p class="muted">Evidence must be copied exactly from the posting. Tip: select text in the posting first.</p>
+      <p class="muted">Evidence must be copied exactly from the posting. Select text in the posting, then use “Use selected text”.</p>
       <label>Skill statement <input name="skill_statement" required></label>
       <label>Evidence text (exact) <textarea name="evidence_text" rows="3" required></textarea></label>
-      <label>Occurrence (if the evidence appears more than once)
+      <div class="row"><button type="button" class="ghost use-sel">Use selected text</button></div>
+      <label>Occurrence (required when the evidence appears more than once)
         <select name="occurrence"><option value="">—</option></select></label>
       <div class="row">
         <label>Requirement <select name="required_or_preferred">
           <option>required</option><option>preferred</option><option>unspecified</option></select></label>
         <label>Category <select name="skill_category"><option value="">—</option><option>technical</option>
           <option>tool</option><option>domain_knowledge</option><option>transferable</option></select></label>
-        <label>Alternative group <input name="alternative_group_id" placeholder="optional"></label>
+        <label>Alternative group <input name="alternative_group_id" placeholder="optional, e.g. p05-alt-1"></label>
       </div>
-      <label>Review notes <input name="review_notes" placeholder="e.g. DISCUSS: …"></label>
-      <p id="edit-error" class="error" role="alert"></p>
+      <label>Review notes <input name="review_notes" placeholder="optional; “DISCUSS: …” flags it for discussion"></label>
+      <p class="error edit-error" role="alert"></p>
       <div class="row end">
-        <button value="cancel" formnovalidate class="ghost">Cancel</button>
-        <button id="edit-save" value="save">Save decision</button>
+        <button type="button" class="ghost dlg-cancel">Cancel</button>
+        <button type="submit" class="dlg-save">Save decision</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="split-dialog">
+    <form id="split-form" method="dialog">
+      <h2>Split into separate skills</h2>
+      <p class="muted" id="split-from"></p>
+      <div id="split-parts" class="split-parts"></div>
+      <div class="row"><button type="button" class="ghost" id="split-add">Add another part</button></div>
+      <p class="error edit-error" role="alert"></p>
+      <div class="row end">
+        <button type="button" class="ghost dlg-cancel">Cancel</button>
+        <button type="submit" class="dlg-save">Save split</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="resolve-dialog">
+    <form id="resolve-form" method="dialog">
+      <h2>Resolve discussion</h2>
+      <p class="muted" id="resolve-what"></p>
+      <label>Reason (recorded with your reviewer ID) <textarea name="reason" rows="3" required></textarea></label>
+      <p class="error edit-error" role="alert"></p>
+      <div class="row end">
+        <button type="button" class="ghost dlg-cancel">Cancel</button>
+        <button type="submit" class="dlg-save">Resolve</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="export-dialog">
+    <div class="dlg-body">
+      <h2>Export reviewed annotations</h2>
+      <p class="muted">Builds the existing annotation CSV format from your latest decisions: rejected records are
+        omitted; additions and split parts are included; the result is validated. Exports go to a new folder under
+        <code>reviewed/</code>, never into <code>annotators/</code>. Exported labels are <strong>not gold</strong>.</p>
+      <div id="export-summary" class="muted">Press “Preview” to build the export.</div>
+      <p class="error" id="export-error" role="alert"></p>
+      <div class="row end">
+        <button type="button" class="ghost" id="export-close">Close</button>
+        <button type="button" class="ghost" id="export-preview">Preview</button>
+        <button type="button" class="ghost" id="export-dl-skills" disabled>Download skills.csv</button>
+        <button type="button" class="ghost" id="export-dl-review" disabled>Download postings_review.csv</button>
+        <button type="button" id="export-write" disabled>Write export folder</button>
+      </div>
+    </div>
   </dialog>
 </body>
 </html>

@@ -507,6 +507,126 @@ is skipped when the local DB is absent. This test found a straight apostrophe in
 validator code and templates. No labels filled in.
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-06 — AI-assisted annotation drafts (`ai_draft` workspace, Sprint 2)
+**Goal:** Prepare *draft* skill records for the 20 development postings, so that human
+annotators have something to review. These are not gold labels.
+
+**Provenance:**
+- **Suggestions:** the team supplied skill suggestions per posting, made with ChatGPT
+  outside this repo. Each had a proposed status (R/P/U, or I for "illustrative").
+  Claude Code made no LLM API call. ChatGPT token use was not recorded here.
+- **What Claude Code did:**
+  - matched each description to a frozen development posting by its actual text
+  - checked every suggestion against the unchanged `clean_text`
+  - located the evidence, computed the zero-based, end-exclusive offsets, and rechecked
+    the requirement value against the posting's own wording
+  - accepted, merged, rejected or flagged each suggestion under guidelines v0.2.1, and
+    added records the guidelines call for (illustrative-list categories, partners of
+    true "X or Y" alternatives)
+- **Labelling of the output:**
+  - workspace `data/annotation/sprint2_v1/annotators/ai_draft/`, created with
+    `annotations.py init`; `annotator_id = ai_draft`
+  - every skill row's `review_notes` starts with `AI-DRAFT: ChatGPT-assisted suggestion;
+    evidence/offsets checked by Claude Code; NOT human-reviewed, NOT gold`
+  - `AI_DRAFT_README.md` in the workspace lists every merge, rejection, added record and
+    unresolved item, per posting
+- **Status:** all 20 development postings are `in_progress`, meaning unfinished draft
+  work, not approval. No posting is `reviewed`, and `annotator_id`/`reviewed_at` are
+  empty on the review rows. The 80 evaluation postings are `not_started` and untouched.
+
+**Corrections requested and applied:**
+1. The 19 postings first stayed `not_started`, as requested. That made `validate` report
+   one problem per row. All 20 are now `in_progress`.
+2. The Senior AI Researcher posting (`recursionpharmaceuticals:8188707`) was added later,
+   with 7 suggestions. The ML/NLP/computer-vision rows from "PhD in ML, NLP, computer
+   vision, or the equivalent practical experience" were first drafted as an alternative
+   group. They were then **removed**, as an academic qualification (§2); the issue stays
+   in the posting note and the unresolved list.
+3. **Atomicity review of merges:** related concepts are not automatically duplicates.
+   - Re-split into separate records:
+     - AI / LLMs and motion / animation (Duolingo design)
+     - prototyping / high-fidelity prototyping
+     - identifying / assessing trends
+     - AI-assisted writing / debugging / optimising code, plus the tool-category record
+     - brand / full-funnel growth metrics
+     - cross-functional / end-to-end product delivery
+     - distributed-system design / reliability / scalability / performance
+     - the three data-stack problem areas
+     - product reporting / dashboards
+     - audit reporting / audit report writing
+   - Kept merged, because they name one ability: "influencing executives and boards" (two
+     audiences), and deploying ML algorithms = getting ML models into production.
+4. **Software engineering** (Robinhood EM) was restored as a required record. The "5+
+   years" requirement is excluded, not the named skill. The record carries a `DISCUSS:`
+   note, because guidelines §2 still defaults to no record for "software development"
+   tenure phrases.
+5. **Alternative-group ids:** `validate` requires an id to be unique across the whole
+   `skills.csv`; reusing `alt-1` in two postings fails. The drafts use `p05-alt-1` and so
+   on. Guidelines v0.2.2 (§3b, §10) and data contract v0.5.2 (§12) now state this rule;
+   before, they said "unique within the posting".
+
+**Result:** 437 draft rows for 20 postings, with 8 alternative groups and 156 rows marked
+`DISCUSS:`. The 431 suggestions break down into 1 rejected, 2 merges and 9 added records.
+`validate` passes with no problems. The SHA-256 of the manifest, templates, DB,
+`annotator-a` and `annotator-b` is unchanged.
+
+**Open:** guidelines §0 says "No LLM fills in, suggests or pre-labels gold annotations".
+The team should state whether separate, clearly labelled AI drafts are allowed, and how
+reviewers may use them (e.g. not before their own independent pass).
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-06 — AI-revised annotation candidates (`ai_revised` workspace, Sprint 2)
+**Goal:** Apply an AI review of the drafts in a separate candidate workspace. The drafts
+and the human folders stay as they are.
+
+**Provenance:**
+- **Review input:** the drafts were exported as `reports/development_annotation_review.json`
+  and reviewed in ChatGPT. That produced `reports/development_annotation_review_report.md`,
+  which gives each of the 437 rows a decision (Keep 283, Revise 75, Discuss 79) and
+  proposes 49 potential missing skills. The report's human sign-off section is still
+  *pending*.
+- **What Claude Code did:**
+  - read the report as review input, not as approval
+  - created `annotators/ai_revised/` with `annotations.py init`
+  - applied the concrete Revise recommendations, rechecking each against the unchanged
+    `clean_text` and recomputing the offsets
+  - checked the 49 additions for support (all report offsets match `clean_text`) and
+    for duplicates and overlaps
+  - made no LLM API call
+- **Labelling of the output:**
+  - carried rows: `AI-REVISED: from ai_draft-NNNN …` plus the report decision
+  - additions: `AI-SUGGESTED ADDITION: …` plus `DISCUSS:`
+  - `annotator_id = ai_revised`; draft annotation ids are kept for traceability
+  - `AI_REVISED_README.md` lists every change, addition and open item
+- **Status:** all 20 development postings are `in_progress`. None is `reviewed` or gold,
+  and approval of the report alone does not change that.
+
+**Changes (437 → 492 rows):**
+- **74 of 75 Revise rows applied:**
+  - evidence widened to the full clause for isolated words (e.g. `verbal`, `building`,
+    `market`, `training`); the span for "decision-making mechanisms" now crosses the
+    source's bullet break
+  - 7 renames (e.g. *colour* → *colour use in visual design*; *product dashboards* →
+    *setting product-dashboard standards*)
+  - 4 splits into 10 records: typological/pedagogical differences; four
+    application-domain testing areas; feature decomposition/timeline planning; LLM
+    knowledge/implementation patterns
+  - 1 value change: *marketing strategy* U → R, at "strategist and operator", with a
+    `DISCUSS:` note that the wording is generic
+- **1 not applied:** ai_draft-0329 asks to narrow the evidence to "build commercial
+  models", but that is not a contiguous span in the text.
+- **49 flagged additions:** no exact duplicates. 25 have notes on overlaps or policy
+  questions (illustrative examples, traits, conflicts with earlier unresolved items).
+- **Unchanged:** the 283 Keep rows (except notes) and the 79 Discuss rows, which stay
+  unresolved; the 8 alternative groups.
+
+**Checks:** `validate` passes for `ai_revised` (492 rows) and for `ai_draft` (437). The
+SHA-256 of `ai_draft`, `annotator-a`, `annotator-b`, the manifest, the templates and the
+DB is unchanged. The evaluation rows are identical to the template.
+**Not adopted:** the report's proposed `mention_relation=illustrative` convention
+(decision 1) goes beyond guidelines v0.2.2 and needs a team decision.
+**What we checked / changed:** *(team to fill in after review)*
+
 ### 2026-10-06 — Skill extractor implemented, no real calls (Sprint 2)
 **Goal:** Implement Team B's LLM skill extractor and test it fully offline before any real
 run.
@@ -755,6 +875,104 @@ results.
 
 **Checks afterwards:** all 16 hashed source files unchanged; the real `reviews/` folder
 absent; 272 unit tests passing (`tests/test_dashboard.py`: 29).
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-07 — Browser annotation workflow: review, completion, export, evaluation mode (Sprint 2)
+**Goal:** Make the dashboard's Annotation review page enough to finish annotation in the
+browser, with no CSV editing or annotation commands, while keeping every draft, text and
+the frozen selection intact.
+
+**Before starting:** no saved review decisions existed (`reviews/` and `reviewed/` absent).
+I hashed 18 source and workspace files: the DB, manifest, templates, `ai_draft`,
+`ai_revised`, `annotator-a`/`-b` and the pilot run.
+
+**Built:**
+- **`src/review_workflow.py`:**
+  - **Log and replay:** an append-only event log per reviewer, replayed into the current
+    state.
+  - **Actions:** accept, edit, reject/delete, reopen, add, split (parts linked with
+    `split_from`), resolve discussion (reason required), complete posting, reopen posting.
+  - **Evidence:** offsets computed on the server against the original `clean_text`, with an
+    explicit occurrence for repeated text.
+  - **Completion rules:**
+    - nothing pending and no open discussion; a DISCUSS flag on a rejected or split record
+      no longer blocks
+    - no stale records, valid alternative groups, and alternative-group IDs unique across
+      postings
+    - two confirmations (full text read, missing skills checked), plus a deliberate
+      zero-skill confirmation when there are no records
+    - records the reviewer, time, text hash, draft hash and guidelines version
+    - invalidated by any later change or by reopening the posting
+  - **Integrity:**
+    - `expected_version` per posting, so a stale tab gets a 409 conflict
+    - `expected_source_sha`, so a changed draft file is refused, and records decided against
+      an older draft row are flagged *stale*
+    - a client request ID, so a repeated click returns the first decision
+    - a file lock and fsync on append
+    - `actor: human` on every event, and AI workspace names refused as reviewer IDs
+  - **Export:**
+    - the existing annotation CSV format, from the latest decisions (rejected records
+      omitted; additions and split parts included)
+    - provenance in each row's notes and in `provenance.jsonl`
+    - validated with `annotations.validate`; an invalid export is refused
+    - a new folder for every write under `reviewed/<reviewer>/<mode>-<timestamp>/`, never
+      under `annotators/`
+    - marked partial or complete, and never gold
+  - **Evaluation mode:**
+    - 80 evaluation postings, starting empty
+    - never reads drafts (tested by making draft reads fail)
+    - text only behind the `X-Dashboard-Mode: evaluation` header
+- **`src/dashboard.py`:** new routes `/api/review` and `/api/review/posting` (mode-aware),
+  `/api/locate`, `/api/export/preview`, `/api/export/download` and `POST /api/export`.
+  `--reviewed-dir` sets the export location.
+- **The page (`app.js`, `index.html`, `app.css`):**
+  - mode switch and evaluation gate; persisted reviewer ID; draft-source selector; progress
+  - previous/next buttons; text beside the cards; click-to-scroll evidence
+  - filter chips with counts, and Details for provenance notes
+  - edit, split and resolve dialogs, with an occurrence picker and "Use selected text"
+  - completion panel, and an export dialog with preview, downloads and write
+  - Saving/Saved/error states, a Reload button on conflicts, and a single request in flight
+    at a time
+
+**Tests:**
+- `tests/test_review_workflow.py`: 31 new tests.
+- `tests/test_dashboard.py`: rewritten for the new API, 14 tests.
+- 288 in total, all passing.
+- `tests/browser/verify_dashboard.py` was extended to 74 checks.
+
+**Browser verification:** Playwright drove the system Chrome headlessly, against temporary
+`--reviews-dir` and `--reviewed-dir` with reviewer `pwtest`. Final run: **74/74**.
+
+Issues the browser found, all fixed:
+1. `.review-grid { display: grid }` overrode the `hidden` attribute, so the grid showed
+   before a reviewer was set. Fix: a global `[hidden] { display: none !important }`.
+2. Split parts copied the original's AI notes, including DISCUSS, so every part became an
+   open discussion. Parts now start with empty notes; provenance stays on the original.
+3. `replaceChildren(null)` printed "nullnull" in the evaluation posting header. Fixed by
+   filtering out the null children.
+4. A rejected DISCUSS record still said "unresolved". It now says "set aside (rejected)".
+5. A development-mode write to an evaluation posting returned 400 instead of 403. The scope
+   check now runs first.
+6. The mode toggle broke at phone width; it is now a stacked list.
+7. Disabled buttons looked enabled; they are now dimmed.
+8. The completion note mentioned a draft version in evaluation mode.
+
+**Also:** an older dashboard process without temporary directories (`src/dashboard.py` with
+no arguments) was holding port 8765. It was stopped so the new code could be tested. The test
+had only set a reviewer ID against it, which writes nothing, and the real `reviews/` folder
+was never created.
+
+**Afterwards:** all 18 hashed files unchanged; the real `reviews/` and `reviewed/` folders
+absent; the 20 screenshots are in `reports/dashboard_screenshots/` (git-ignored).
+
+**Limitations:**
+- One reviewer's log is assumed to be used by one person at a time, through this server
+  (conflicts are detected, not merged).
+- There is no adjudication view or inter-annotator comparison in the page; use
+  `annotations.py compare` on exported folders.
+- Whether `reviews/` and `reviewed/` are committed is not yet decided.
+- The guidelines version is read from the guidelines file header.
+
 **What we checked / changed:** *(team to fill in after review)*
 
 ## LLM token usage (pipeline)

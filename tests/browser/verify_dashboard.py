@@ -4,8 +4,8 @@ Optional tool, not collected by pytest and not a project dependency. Run it agai
 was started with a TEMPORARY review directory, so test decisions never reach the real reviews folder:
 
     python -m venv /tmp/pwvenv && /tmp/pwvenv/bin/pip install playwright        # uses installed Google Chrome
-    python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews &
-    /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py OUT_DIR /tmp/dash_reviews EVAL_ID VARIANT_ID
+    python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews --reviewed-dir /tmp/dash_reviewed &
+    /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py OUT_DIR /tmp/dash_reviews /tmp/dash_reviewed EVAL_ID VARIANT_ID
 
 OUT_DIR receives shots/*.png and pw_results.json. EVAL_ID is an evaluation posting and VARIANT_ID a
 posting grouped with one (both must be refused). The reviewer used is "pwtest".
@@ -16,7 +16,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
 
-S, REVIEWS, EVAL_ID, VARIANT_ID = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], sys.argv[4]
+S, REVIEWS, REVIEWED, EVAL_ID, VARIANT_ID = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4], sys.argv[5]
 SHOTS = S / "shots"
 BASE = "http://127.0.0.1:8765"
 REVIEWER = "pwtest"
@@ -45,7 +45,7 @@ def shot(page, name, full=False):
 
 with sync_playwright() as p:
     browser = p.chromium.launch(channel="chrome", headless=True)
-    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900}, accept_downloads=True)
     page = ctx.new_page()
     page.on("console", lambda m: errors.append(f"{m.type}: {m.text}") if m.type == "error" else None)
     page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
@@ -138,107 +138,251 @@ with sync_playwright() as p:
     check("extraction: empty state", True)
     shot(page, "08_extraction_empty")
 
-    # ------------------------------------------------------------ 3. review
+    # ------------------------------------------------------------ 3. review: development workflow
+    ILL = "greenhouse:duolingo:8863967002"   # Illustrator, Intern: 5 AI drafts, 4 with DISCUSS
+    log = REVIEWS / REVIEWER / "decisions.jsonl"
+    nlog = lambda: len(log.read_text().splitlines()) if log.is_file() else 0
+    expected_4xx = 0
+
+    def card(aid):
+        return page.locator(f"#review-cards .item[data-item='{aid}']")
+
+    def saved(text_fragment="Saved"):
+        expect(page.locator("#save-status")).to_contain_text(text_fragment, timeout=8000)
+
+    def click_action(aid, label):
+        card(aid).get_by_role("button", name=label, exact=True).click()
+
     page.click("button[data-view=review]")
+    page.click(".seg button[data-mode=development]")
+    expect(page.locator("#review-empty")).to_be_visible()
+    check("review: grid hidden until a reviewer ID is set", page.locator("#review-grid").is_hidden())
     page.fill("#reviewer", REVIEWER)
-    page.dispatch_event("#reviewer", "change")
-    expect(page.locator("#review-msg")).to_contain_text(f"Reviewing as {REVIEWER}")
-    check("review: AI drafts label", "AI-generated, unreviewed drafts" in page.text_content("#view-review .banner"))
+    page.click("#reviewer-set")
+    expect(page.locator("#review-postings li").first).to_be_visible()
     check("review: 20 development postings", page.locator("#review-postings li").count() == 20)
-    page.locator("#review-postings li", has_text=DUO).click()
-    expect(page.locator("#review-detail .item").first).to_be_visible()
-    ritems = page.locator("#review-detail .item")
-    n0 = ritems.count()
-    check("review: DISCUSS flags visible", page.locator("#review-detail .b-discuss").count() > 0,
-          f"{page.locator('#review-detail .b-discuss').count()} flagged")
-    shot(page, "09_review_posting")
+    check("review: overall progress shown", "0/20 postings marked reviewed" in page.text_content("#review-progress"),
+          page.text_content("#review-progress"))
+    page.locator("#review-postings li", has_text=ILL).click()
+    expect(page.locator("#review-text")).to_contain_text(ILL)
+    expect(card("ai_draft-0068")).to_be_visible()
+    check("review: text beside cards", page.locator("#review-text .posting-text").is_visible() and page.locator("#review-cards .item").count() == 5)
+    chips = page.locator("#review-cards .chip").all_text_contents()
+    check("review: filter counts", any(c.startswith("Pending 5") for c in chips) and any(c.startswith("Discussion (open) 4") for c in chips), str(chips))
+    det = card("ai_draft-0071").locator("details")
+    check("review: provenance notes behind Details, DISCUSS visible",
+          det.get_attribute("open") is None and card("ai_draft-0071").locator(".b-discuss").is_visible())
+    card("ai_draft-0068").locator(".stmt").click()
+    page.wait_for_timeout(500)
+    in_view = page.evaluate("""() => { const m = document.querySelector('#review-text-body mark.focus'); if (!m) return false;
+        const r = m.getBoundingClientRect(), p = document.querySelector('#review-text').getBoundingClientRect();
+        return r.top >= p.top - 1 && r.bottom <= p.bottom + 1 && m.textContent.includes('illustrating in creative software'); }""")
+    check("review: clicking a card highlights and scrolls to its evidence", in_view)
+    shot(page, "20_review_dev_posting")
 
-    def item(i):
-        return page.locator("#review-detail .item").nth(i)
+    # accept / reject / reopen / edit
+    click_action("ai_draft-0068", "Accept"); saved("Saved: accept")
+    check("review: accept", card("ai_draft-0068").locator(".b-accepted").is_visible())
+    click_action("ai_draft-0071", "Reject"); saved("Saved: reject")
+    click_action("ai_draft-0071", "Reopen"); saved("Saved: reopen")
+    check("review: reject then reopen returns to pending", card("ai_draft-0071").locator(".b-pending").is_visible())
+    click_action("ai_draft-0071", "Edit")
+    page.fill("#edit-form [name=skill_statement]", "independent working")
+    page.select_option("#edit-form [name=required_or_preferred]", "unspecified")
+    page.select_option("#edit-form [name=skill_category]", "transferable")
+    page.fill("#edit-form [name=review_notes]", "browser test edit")
+    page.click("#edit-form .dlg-save")
+    expect(page.locator("#edit-dialog")).to_be_hidden(); saved("Saved: edit")
+    check("review: edit (wording, requirement, category, notes)", "independent working" in card("ai_draft-0071").text_content()
+          and card("ai_draft-0071").locator(".b-edited").is_visible())
 
-    def wait_state(i, state):
-        expect(item(i).locator(f".b-{state}").first).to_be_visible()
+    # resolve a discussion with a recorded reason
+    click_action("ai_draft-0071", "Resolve discussion")
+    page.fill("#resolve-form [name=reason]", "stated as an ability in the duty list")
+    page.click("#resolve-form .dlg-save")
+    expect(page.locator("#resolve-dialog")).to_be_hidden(); saved("Saved: resolve")
+    check("review: discussion resolved with reason", card("ai_draft-0071").locator(".b-ok", has_text="discussion resolved").is_visible())
 
-    first_id = item(0).get_attribute("data-item")
-    item(0).get_by_role("button", name="Accept").click(); wait_state(0, "accepted")
-    check("review: accept", True, first_id)
-    item(1).get_by_role("button", name="Reject").click(); wait_state(1, "rejected")
-    check("review: reject", True, item(1).get_attribute("data-item"))
-    check("review: no redundant Accept on accepted / Reject on rejected",
-          item(0).get_by_role("button", name="Accept").count() == 0 and item(1).get_by_role("button", name="Reject").count() == 0)
-    item(0).get_by_role("button", name="Reopen").click(); wait_state(0, "pending")
-    check("review: reopen", True)
-    item(0).get_by_role("button", name="Accept").click(); wait_state(0, "accepted")
-    item(2).get_by_role("button", name="Edit").click()
-    expect(page.locator("#edit-dialog")).to_be_visible()
-    page.fill("#edit-form [name=skill_statement]", "edited by browser test")
-    page.click("#edit-save")
-    expect(page.locator("#edit-dialog")).to_be_hidden()
-    wait_state(2, "edited")
-    check("review: edit", "edited by browser test" in item(2).text_content())
-    shot(page, "10_review_after_actions")
+    # split a combined skill into two traceable parts
+    click_action("ai_draft-0072", "Split")
+    parts = page.locator("#split-parts fieldset")
+    parts.nth(0).locator("[name=skill_statement]").fill("small-group collaboration")
+    parts.nth(0).locator("[name=evidence_text]").fill("in small groups")
+    parts.nth(1).locator("[name=skill_statement]").fill("completing illustration projects")
+    parts.nth(1).locator("[name=evidence_text]").fill("complete challenging illustration projects")
+    page.wait_for_timeout(500)
+    page.click("#split-form .dlg-save")
+    expect(page.locator("#split-dialog")).to_be_hidden(); saved("Saved: split")
+    split_parts = page.locator("#review-cards .item", has=page.locator(".badge", has_text="split from ai_draft-0072"))
+    check("review: split into 2 parts with history", split_parts.count() == 2 and card("ai_draft-0072").locator(".b-split").is_visible())
+    shot(page, "21_review_after_split")
+
+    # Figma accepted + discussion resolved; Photoshop rejected
+    click_action("ai_draft-0069", "Accept"); saved("Saved: accept")
+    click_action("ai_draft-0069", "Resolve discussion")
+    page.fill("#resolve-form [name=reason]", "named as acceptable software (illustrative)")
+    page.click("#resolve-form .dlg-save"); expect(page.locator("#resolve-dialog")).to_be_hidden(); saved("Saved: resolve")
+    click_action("ai_draft-0070", "Reject"); saved("Saved: reject")
+    check("review: rejected DISCUSS record shown as set aside, not blocking",
+          card("ai_draft-0070").locator(".badge", has_text="set aside (rejected)").is_visible())
 
     # add skill: invalid evidence, then repeated evidence needing an occurrence
-    page.get_by_role("button", name="Add skill").click()
+    page.locator("#review-cards").get_by_role("button", name="Add skill").click()
     page.fill("#edit-form [name=skill_statement]", "browser-test addition")
     page.fill("#edit-form [name=evidence_text]", "this phrase is not in the posting")
-    page.wait_for_timeout(500)
-    expect(page.locator("#edit-error")).to_contain_text("Not found")
-    page.click("#edit-save")
-    expect(page.locator("#edit-error")).to_contain_text("does not occur exactly")
-    check("review: invalid evidence rejected with error", True, page.text_content("#edit-error"))
-    shot(page, "11_review_invalid_evidence")
+    page.click("#edit-form .dlg-save"); expected_4xx += 1
+    expect(page.locator("#edit-form .edit-error")).to_contain_text("does not occur exactly")
+    check("review: invalid evidence error, nothing saved", page.locator("#edit-dialog").is_visible())
+    shot(page, "22_review_invalid_evidence")
     page.fill("#edit-form [name=evidence_text]", "Duolingo")
     page.wait_for_timeout(600)
     opts = page.locator("#edit-form [name=occurrence] option").count() - 1
-    expect(page.locator("#edit-error")).to_contain_text("choose an occurrence")
     page.select_option("#edit-form [name=occurrence]", value="")
-    page.click("#edit-save")
-    expect(page.locator("#edit-error")).to_contain_text("occurs")
-    check("review: repeated evidence requires an occurrence", opts > 1, f"{opts} occurrences offered")
-    shot(page, "12_review_repeated_evidence")
-    dw = page.locator("#edit-dialog").evaluate("d => [d.scrollWidth, d.clientWidth]")
-    check("review: dialog content fits (no clipping)", dw[0] <= dw[1] + 1, f"{dw}")
+    page.click("#edit-form .dlg-save"); expected_4xx += 1
+    expect(page.locator("#edit-form .edit-error")).to_contain_text("choose an occurrence")
+    check("review: repeated evidence requires choosing the occurrence", opts > 1, f"{opts} occurrences")
     page.select_option("#edit-form [name=occurrence]", value="2")
-    page.click("#edit-save")
-    expect(page.locator("#edit-dialog")).to_be_hidden()
-    expect(page.locator("#review-detail .b-added").first).to_be_visible()
-    check("review: add skill with chosen occurrence", page.locator("#review-detail .item").count() == n0 + 1)
+    page.click("#edit-form .dlg-save")
+    expect(page.locator("#edit-dialog")).to_be_hidden(); saved("Saved: new skill")
+    added = page.locator("#review-cards .item", has_text="browser-test addition")
+    check("review: add skill with chosen occurrence", added.count() == 1 and added.locator(".b-added").is_visible())
 
-    # add skill from a text selection in the posting
-    page.evaluate("""() => { const box = document.querySelector('#review-detail .posting-text');
-        const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); let n;
-        while ((n = w.nextNode())) { const i = n.data.indexOf('Partner with engineers'); if (i >= 0) {
-          const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 'Partner with engineers'.length);
-          const s = getSelection(); s.removeAllRanges(); s.addRange(r); break; } }
-        box.dispatchEvent(new MouseEvent('mouseup', {bubbles: true})); }""")
-    page.get_by_role("button", name="Add skill").click()
-    ev = page.input_value("#edit-form [name=evidence_text]")
-    check("review: selected text prefills evidence", ev == "Partner with engineers", repr(ev))
-    page.fill("#edit-form [name=skill_statement]", "cross-functional partnering (browser test)")
-    page.click("#edit-save")
-    expect(page.locator("#edit-dialog")).to_be_hidden()
-    check("review: add from selection", page.locator("#review-detail .item").count() == n0 + 2)
-    shot(page, "13_review_added")
+    # duplicate clicks: two fast clicks on Reject write once
+    n_before = nlog()
+    btn = added.get_by_role("button", name="Reject", exact=True)
+    btn.click(click_count=2, delay=10)
+    saved("Saved: reject"); page.wait_for_timeout(400)
+    check("review: double click writes one decision", nlog() == n_before + 1, f"{nlog() - n_before} new lines")
+    added.get_by_role("button", name="Reopen", exact=True).click(); saved("Saved: reopen")
 
-    # persistence after refresh
+    # completion: blocked, then confirmed
+    cbtn = page.locator(".complete button", has_text="Mark posting reviewed")
+    check("review: completion disabled until confirmations", cbtn.is_disabled())
+    page.check("#c-read"); page.check("#c-missing")
+    check("review: no blocking items left", page.locator(".complete .blocking").count() == 0)
+    cbtn.click(); saved("Saved: posting marked reviewed")
+    check("review: posting marked reviewed", page.locator(".complete .b-ok", has_text="marked reviewed").is_visible())
+    expect(page.locator("#review-progress")).to_contain_text("1/20 postings marked reviewed")
+    check("review: progress updates", True)
+    shot(page, "23_review_completed")
+    # changing a completed posting invalidates the completion
+    click_action("ai_draft-0068", "Reopen"); saved("Saved: reopen")
+    expect(page.locator(".complete .warnbox")).to_contain_text("invalidated")
+    expect(page.locator("#review-postings li.sel .badge", has_text="completion invalidated")).to_be_visible()
+    check("review: change invalidates completion", True)
+    click_action("ai_draft-0068", "Accept"); saved("Saved: accept")
+    page.check("#c-read"); page.check("#c-missing")
+    page.locator(".complete button", has_text="Mark posting reviewed").click(); saved("Saved: posting marked reviewed")
+
+    # refresh: everything restored from the decision log
     page.reload(wait_until="networkidle")
-    expect(page.locator("#view-review")).to_be_visible()  # last tab remembered
-    check("persist: reviewer ID remembered", page.input_value("#reviewer") == REVIEWER)
-    expect(page.locator("#snapshot")).to_have_text("20261006T171338Z")
-    check("header: snapshot label filled when opening on the review tab", True)
-    page.locator("#review-postings li", has_text=DUO).click()
-    expect(page.locator("#review-detail .item").first).to_be_visible()
-    states = page.eval_on_selector_all("#review-detail .item", "items => items.map(i => [i.dataset.item, [...i.querySelectorAll('.badge')].map(b => b.textContent)[0]])")
-    st = dict(states)
-    check("persist: decisions survive refresh",
-          st.get(first_id) == "accepted" and list(st.values()).count("added") == 2 and "edited" in st.values() and "rejected" in st.values(),
-          json.dumps(states[:3]))
-    shot(page, "14_review_after_refresh")
-    lines = [json.loads(l) for l in (REVIEWS / REVIEWER / "decisions.jsonl").read_text().splitlines()]
-    check("persist: decisions written to the temporary review dir only",
-          [d["action"] for d in lines] == ["accept", "reject", "reopen", "accept", "edit", "add", "add"],
-          f"{len(lines)} lines in {REVIEWS}")
+    expect(page.locator("#review-cards .item").first).to_be_visible()
+    check("persist: reviewer, mode and posting restored", page.input_value("#reviewer") == REVIEWER
+          and page.locator("#review-postings li.sel", has_text=ILL).count() == 1)
+    check("persist: decisions and completion survive refresh",
+          page.locator(".complete .b-ok", has_text="marked reviewed").is_visible()
+          and card("ai_draft-0072").locator(".b-split").is_visible() and card("ai_draft-0070").locator(".b-rejected").is_visible())
+    shot(page, "24_review_after_refresh")
+
+    # previous / next navigation
+    page.click("#next-posting")
+    expect(page.locator("#review-postings li.sel")).not_to_have_attribute("data-pid", ILL)
+    nxt = page.locator("#review-postings li.sel").get_attribute("data-pid")
+    page.click("#prev-posting")
+    expect(page.locator("#review-postings li.sel")).to_have_attribute("data-pid", ILL)
+    check("review: previous / next navigation", nxt != ILL)
+
+    # stale version in a second tab: a clear conflict, not an overwrite
+    page2 = ctx.new_page()
+    page2.on("console", lambda m: errors.append(f"{m.type}: {m.text}") if m.type == "error" else None)
+    page2.goto(BASE + "/", wait_until="networkidle")
+    SOC = "greenhouse:duolingo:8810661002"
+    page2.locator("#review-postings li", has_text=SOC).click()
+    expect(page2.locator("#review-text")).to_contain_text(SOC)
+    page.locator("#review-postings li", has_text=SOC).click()
+    expect(page.locator("#review-text")).to_contain_text(SOC)
+    first_aid = page.locator("#review-cards .item").first.get_attribute("data-item")
+    page.locator(f"#review-cards .item[data-item='{first_aid}']").get_by_role("button", name="Accept", exact=True).click(); saved("Saved: accept")
+    n_before = nlog()
+    page2.locator(f"#review-cards .item[data-item='{first_aid}']").get_by_role("button", name="Reject", exact=True).click(); expected_4xx += 1
+    expect(page2.locator("#save-status")).to_contain_text("Conflict")
+    check("integrity: stale tab gets a conflict, nothing overwritten", nlog() == n_before)
+    shot(page2, "25_review_conflict")
+    page2.locator("#save-status").get_by_role("button", name="Reload posting").click()
+    expect(page2.locator(f"#review-cards .item[data-item='{first_aid}'] .b-accepted")).to_be_visible()
+    check("integrity: reload shows the other tab's decision", True)
+    page2.close()
+
+    # export: preview, download, write
+    page.click("#export-open")
+    page.click("#export-preview")
+    expect(page.locator("#export-summary")).to_contain_text("PARTIAL")
+    summary = page.text_content("#export-summary")
+    check("export: partial preview, not gold, validated", "not gold" in summary and "no problems" in summary, summary[:160])
+    with page.expect_download() as dl:
+        page.click("#export-dl-skills")
+    path = dl.value.path()
+    header = Path(path).read_text().splitlines()[0]
+    check("export: download skills.csv in the annotation format", header.startswith("snapshot_id,posting_id,annotation_id,skill_statement"), dl.value.suggested_filename)
+    page.click("#export-write")
+    expect(page.locator("#export-summary .save-status")).to_contain_text("Written (partial, not gold)")
+    written = page.text_content("#export-summary .save-status").split(": ", 1)[1].strip()
+    check("export: written to a new reviewed folder", written.startswith(str(REVIEWED)) and (Path(written) / "skills.csv").is_file(), written)
+    shot(page, "26_export_preview")
+    page.click("#export-close")
+
+    # ------------------------------------------------------------ 4. independent evaluation mode
+    page.click(".seg button[data-mode=evaluation]")
+    expect(page.locator("#eval-gate")).to_be_visible()
+    check("evaluation: explicit gate before any text", page.locator("#review-grid").is_hidden() and page.locator("#eval-start").is_disabled())
+    shot(page, "27_eval_gate")
+    page.check("#eval-confirm"); page.click("#eval-start")
+    expect(page.locator("#review-postings li")).to_have_count(80)
+    check("evaluation: 80 evaluation postings", True)
+    page.locator("#review-postings li", has_text=EVAL_ID).click()
+    expect(page.locator("#review-text")).to_contain_text(EVAL_ID)
+    expect(page.locator("#review-cards .empty-state")).to_be_visible()
+    check("evaluation: empty skill list, no highlights, no AI wording",
+          page.locator("#review-text mark").count() == 0 and page.locator("#review-cards .item").count() == 0
+          and "AI-generated" not in page.text_content("#review-text"))
+    head_text = page.evaluate("() => [...document.querySelectorAll('#review-text > :not(.posting-text)')].map(e => e.textContent).join(' ')")
+    check("evaluation: no stray 'null' text in the posting header", "null" not in head_text, head_text[:80])
+    shot(page, "28_eval_posting")
+    word = page.evaluate("""() => { const t = document.querySelector('#review-text-body').textContent;
+        const m = t.match(/[A-Z][a-z]{5,}/); return m ? m[0] : null; }""")
+    page.evaluate("""(w) => { const box = document.querySelector('#review-text-body');
+        const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); let n;
+        while ((n = walker.nextNode())) { const i = n.data.indexOf(w); if (i >= 0) { const r = document.createRange();
+          r.setStart(n, i); r.setEnd(n, i + w.length); const s = getSelection(); s.removeAllRanges(); s.addRange(r); break; } }
+        box.dispatchEvent(new MouseEvent('mouseup', {bubbles: true})); }""", word)
+    page.locator("#review-cards").get_by_role("button", name="Add skill").click()
+    check("evaluation: selected text fills evidence", page.input_value("#edit-form [name=evidence_text]") == word, word)
+    page.fill("#edit-form [name=skill_statement]", "evaluation browser test skill")
+    page.wait_for_timeout(500)
+    if page.locator("#edit-form [name=occurrence] option").count() > 2:
+        page.select_option("#edit-form [name=occurrence]", value="1")
+    page.click("#edit-form .dlg-save"); expect(page.locator("#edit-dialog")).to_be_hidden(); saved("Saved: new skill")
+    eitem = page.locator("#review-cards .item").first
+    eitem.get_by_role("button", name="Delete", exact=True).click(); saved("Saved: delete")
+    eitem = page.locator("#review-cards .item").first
+    eitem.get_by_role("button", name="Reopen", exact=True).click(); saved("Saved: reopen")
+    page.check("#c-read"); page.check("#c-missing")
+    page.locator(".complete button", has_text="Mark posting reviewed").click(); saved("Saved: posting marked reviewed")
+    check("evaluation: add, delete, reopen, complete", page.locator(".complete .b-ok", has_text="marked reviewed").is_visible())
+    page.click("#export-open"); page.click("#export-preview")
+    expect(page.locator("#export-summary")).to_contain_text("PARTIAL")
+    check("evaluation: own export, 1/80 reviewed", "1/80 postings marked reviewed" in page.text_content("#export-summary"))
+    page.click("#export-close")
+    ev_events = [json.loads(l) for l in log.read_text().splitlines() if json.loads(l)["mode"] == "evaluation"]
+    check("evaluation: decisions logged in evaluation mode with no draft source",
+          ev_events and all(e["source"] == "none" and e["source_skills_sha256"] is None for e in ev_events), f"{len(ev_events)} events")
+    for path in [f"/api/review/posting?mode=evaluation&posting_id={EVAL_ID}&reviewer={REVIEWER}",
+                 f"/api/review?mode=evaluation&reviewer={REVIEWER}"]:
+        r = page.request.get(BASE + path)
+        check(f"evaluation: {path.split('?')[0]} refused without the explicit mode header", r.status == 403, str(r.status))
+    page.click(".seg button[data-mode=development]")
+    expect(page.locator("#review-postings li")).to_have_count(20)
+    check("evaluation: switching back shows development drafts again", True)
 
     # held-out texts via the API from the page context
     for path in [f"/api/corpus/posting?posting_id={EVAL_ID}", f"/api/corpus/posting?posting_id={VARIANT_ID}",
@@ -265,13 +409,19 @@ with sync_playwright() as p:
     over = mp.evaluate("() => document.documentElement.scrollWidth - window.innerWidth")
     check("mobile: no horizontal page scroll (extraction)", over <= 0, f"overflow {over}px")
     mp.screenshot(path=str(SHOTS / "16_mobile_extraction.png"))
+    mp.click("button[data-view=review]")
+    mp.fill("#reviewer", REVIEWER); mp.click("#reviewer-set")
+    mp.wait_for_selector("#review-cards .item")
+    over = mp.evaluate("() => document.documentElement.scrollWidth - window.innerWidth")
+    check("mobile: no horizontal page scroll (review)", over <= 0, f"overflow {over}px")
+    mp.screenshot(path=str(SHOTS / "29_mobile_review.png"))
     m.close()
 
-    # the two saves the test deliberately sent with invalid evidence return 400; Chrome logs those fetches
-    expected = [e for e in errors if "status of 400" in e]
-    unexpected = [e for e in errors if "status of 400" not in e]
+    # deliberate failures (invalid evidence, missing occurrence, stale-tab conflict) return 400/409; Chrome logs those
+    expected = [e for e in errors if "status of 400" in e or "status of 409" in e]
+    unexpected = [e for e in errors if e not in expected]
     check("no unexpected console or page errors", not unexpected, "; ".join(unexpected[:5]))
-    check("only the 2 deliberate invalid-evidence requests logged 400", len(expected) == 2, f"{len(expected)} x 400")
+    check("only the deliberate failed requests were logged", len(expected) == expected_4xx, f"{len(expected)} logged / {expected_4xx} deliberate")
     browser.close()
 
 passed = sum(ok for _, ok, _ in results)

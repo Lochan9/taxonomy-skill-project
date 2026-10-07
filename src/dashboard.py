@@ -1,18 +1,21 @@
 """Local Team B dashboard: corpus explorer, extraction results, annotation review.
 
-    python src/dashboard.py [--port 8765] [--reviews-dir PATH]   # then open http://127.0.0.1:8765/
+    python src/dashboard.py [--port 8765] [--reviews-dir PATH] [--reviewed-dir PATH]
+    # then open http://127.0.0.1:8765/
 
 Standard library only (WSGI). It binds to 127.0.0.1, reads local files only, makes no API calls
 and reads no credentials (.env is never opened).
 
 Read-only sources: the SQLite DB (opened with mode=ro), reports/, data/processed/derived/,
 data/extraction/runs/, and the AI draft workspaces (annotators/ai_revised, annotators/ai_draft).
-The only writes are reviewer decisions, appended to
-data/annotation/sprint2_v1/reviews/<reviewer_id>/decisions.jsonl.
+Writes (see review_workflow.py):
+  - reviewer decisions, appended to data/annotation/sprint2_v1/reviews/<reviewer_id>/decisions.jsonl
+  - exports, each in a new folder data/annotation/sprint2_v1/reviewed/<reviewer_id>/<mode>-<timestamp>/
 
-Held-out data stays out: the evaluation postings and every posting grouped with one in the
-frozen manifest (near-identical variants) have their text withheld, and review and extraction
-views accept development postings only. Human annotator folders are not loaded.
+Held-out data: the evaluation postings' text is served only in explicit evaluation annotation mode
+(header X-Dashboard-Mode: evaluation), where no AI drafts or predictions are read. Corpus, extraction and
+development review never show it, nor the text of non-selected variants grouped with an evaluation
+posting. Human annotator folders are not loaded.
 """
 
 from __future__ import annotations
@@ -24,7 +27,6 @@ import json
 import mimetypes
 import re
 import sys
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -32,11 +34,11 @@ from wsgiref.simple_server import make_server
 
 import annotations as an
 import derive_features as df
+import review_workflow as rw
 from select_annotation_set import REPO_ROOT, read_manifest, set_dir
 
 STATIC = Path(__file__).resolve().parent / "dashboard_static"
-REVIEW_SOURCES = ("ai_revised", "ai_draft")  # development AI drafts only; human folders are excluded
-ACTIONS = {"accept", "reject", "edit", "add", "reopen"}
+REVIEW_SOURCES = rw.DEV_SOURCES  # development AI drafts only; human folders are never loaded
 AI_LABEL = "AI-generated, unreviewed"
 MAX_BODY = 1_000_000
 
@@ -61,11 +63,13 @@ def now_iso() -> str:
 class Context:
     """Paths and the frozen selection. Texts are fetched read-only on demand."""
 
-    def __init__(self, root: Path, db: Path | None = None, reviews_dir: Path | None = None):
+    def __init__(self, root: Path, db: Path | None = None, reviews_dir: Path | None = None,
+                 reviewed_dir: Path | None = None):
         self.root = root
         self.set_dir = set_dir(root)
         self.db = db or root / "data" / "processed" / "taxonomy_pilot.sqlite"
         self.reviews_dir = reviews_dir or self.set_dir / "reviews"
+        self.reviewed_dir = reviewed_dir or self.set_dir / "reviewed"
         self.runs_dir = root / "data" / "extraction" / "runs"
         self.manifest = read_manifest(self.set_dir / "selection_manifest.csv")
         self.snapshot = self.manifest[0]["snapshot_id"]
@@ -125,30 +129,7 @@ def segment_text(text: str, spans: list[dict]) -> tuple[list[dict], list[dict]]:
     return segs, [{"id": s["id"], "reason": "offsets do not match clean_text"} for s in invalid]
 
 
-def place_evidence(text: str, evidence: str, occurrence: int | None = None, start: int | None = None) -> tuple[int, int]:
-    """Offsets of an exact evidence string, computed here. Never trusts a client offset alone."""
-    if not isinstance(evidence, str) or not evidence:
-        raise DashboardError("evidence_text is required")
-    if evidence != evidence.strip():
-        raise DashboardError("evidence_text starts or ends with whitespace; trim the span")
-    hits, i = [], text.find(evidence)
-    while i >= 0:
-        hits.append(i)
-        i = text.find(evidence, i + 1)
-    if not hits:
-        raise DashboardError("evidence_text does not occur exactly in clean_text "
-                             "(it must match case, punctuation and spacing)")
-    if start is not None:
-        if start not in hits:
-            raise DashboardError("evidence_start does not point at an occurrence of evidence_text", occurrences=hits)
-        return start, start + len(evidence)
-    if occurrence is not None:
-        if not 1 <= occurrence <= len(hits):
-            raise DashboardError(f"occurrence must be between 1 and {len(hits)}", occurrences=hits)
-        return hits[occurrence - 1], hits[occurrence - 1] + len(evidence)
-    if len(hits) > 1:
-        raise DashboardError(f"evidence_text occurs {len(hits)} times; choose an occurrence", occurrences=hits)
-    return hits[0], hits[0] + len(evidence)
+place_evidence = rw.place_evidence  # evidence offsets are computed in one place (review_workflow)
 
 
 # ------------------------------------------------------------------------- corpus explorer
@@ -270,194 +251,66 @@ def run_posting(ctx: Context, run_id: str, pid: str) -> dict:
             "invalid_offsets": invalid, "rejected": rejected}
 
 
-# ------------------------------------------------------------------------- annotation review
+# ------------------------------------------------------------------------- annotation review (see review_workflow)
 
 
-def _source_path(ctx: Context, source: str) -> Path:
-    if source not in REVIEW_SOURCES:
-        raise DashboardError(f"source must be one of {list(REVIEW_SOURCES)}")
-    p = ctx.set_dir / "annotators" / source / "skills.csv"
-    if not p.is_file():
-        raise DashboardError(f"draft workspace {source} not found", 404)
-    return p
+EVAL_HEADER = "HTTP_X_DASHBOARD_MODE"  # evaluation text is served only with X-Dashboard-Mode: evaluation
 
 
-def _reviewer(rid: str) -> str:
-    if not isinstance(rid, str) or not an.ANNOTATOR_RE.match(rid):
-        raise DashboardError("reviewer_id must be lowercase letters/digits/_/- (max 32)")
-    if rid in REVIEW_SOURCES or rid.startswith("ai_"):
-        raise DashboardError("reviewer_id must identify a person, not an AI workspace")
-    return rid
+def _mode(environ, q) -> str:
+    mode = (q.get("mode", ["development"])[0]) or "development"
+    if mode not in rw.MODES:
+        raise DashboardError(f"mode must be one of {list(rw.MODES)}")
+    if mode == "evaluation" and environ.get(EVAL_HEADER) != "evaluation":
+        raise DashboardError("evaluation postings are only available in explicit evaluation annotation mode", 403)
+    return mode
 
 
-def decisions_path(ctx: Context, reviewer: str) -> Path:
-    return ctx.reviews_dir / reviewer / "decisions.jsonl"
-
-
-def load_decisions(ctx: Context, reviewer: str) -> list[dict]:
-    return _read_jsonl(decisions_path(ctx, reviewer))
-
-
-def _flags(row: dict) -> list[str]:
-    notes = row.get("review_notes", "")
-    f = []
-    if "DISCUSS" in notes:
-        f.append("discuss")
-    if "illustrative list" in notes:
-        f.append("illustrative")
-    if notes.startswith("AI-SUGGESTED"):
-        f.append("suggested_addition")
-    if row.get("alternative_group_id"):
-        f.append("alternative")
-    return f
-
-
-def review_overview(ctx: Context, source: str, reviewer: str | None) -> dict:
-    rows = list(csv.DictReader(open(_source_path(ctx, source), encoding="utf-8", newline="")))
-    dec = load_decisions(ctx, _reviewer(reviewer)) if reviewer else []
-    out = []
-    for pid, mr in sorted(ctx.dev.items()):
-        mine = [r for r in rows if r["posting_id"] == pid]
-        state = _effective(mine, [d for d in dec if d["source"] == source and d["posting_id"] == pid])
-        out.append({"posting_id": pid, "title": mr["title"].strip(), "company_name": mr["company_name"],
-                    "n_draft": len(mine), "n_discuss": sum("discuss" in _flags(r) for r in mine),
-                    "n_pending": sum(s["state"] == "pending" for s in state),
-                    "n_decided": sum(s["state"] != "pending" for s in state)})
-    return {"source": source, "label": f"{AI_LABEL} drafts", "reviewer": reviewer, "postings": out,
-            "snapshot_id": ctx.snapshot}
-
-
-def _effective(draft_rows: list[dict], decisions: list[dict]) -> list[dict]:
-    """Latest decision per record; drafts themselves are never modified."""
-    latest: dict[str, dict] = {}
-    last_record: dict[str, dict] = {}
-    for d in decisions:  # file order = time order
-        latest[d["annotation_id"]] = d
-        if d.get("record"):
-            last_record[d["annotation_id"]] = d["record"]
-    items = []
-    draft_ids = set()
-    for r in draft_rows:
-        aid = r["annotation_id"]
-        draft_ids.add(aid)
-        d = latest.get(aid)
-        state = "pending" if d is None or d["action"] == "reopen" else \
-            {"accept": "accepted", "reject": "rejected", "edit": "edited"}[d["action"]]
-        items.append({"annotation_id": aid, "origin": "draft", "draft": r, "flags": _flags(r), "state": state,
-                      "decision": d if state != "pending" else None,
-                      "current": d["record"] if state == "edited" else r})
-    for aid, d in latest.items():  # records the reviewer added
-        if aid in draft_ids:
-            continue
-        items.append({"annotation_id": aid, "origin": "reviewer", "draft": None, "flags": [],
-                      "state": "rejected" if d["action"] == "reject" else "added", "decision": d,
-                      "current": last_record[aid]})
-    return items
-
-
-def review_posting(ctx: Context, source: str, pid: str, reviewer: str | None) -> dict:
-    text = ctx.dev_text(pid)
-    rows = [r for r in csv.DictReader(open(_source_path(ctx, source), encoding="utf-8", newline=""))
-            if r["posting_id"] == pid]
-    dec = [d for d in (load_decisions(ctx, _reviewer(reviewer)) if reviewer else [])
-           if d["source"] == source and d["posting_id"] == pid]
-    items = _effective(rows, dec)
-    spans = []
-    for it in items:
-        c = it["current"]
-        try:
-            spans.append({"id": it["annotation_id"], "start": int(c["evidence_start"]), "end": int(c["evidence_end"]),
-                          "evidence": c["evidence_text"]})
-        except (KeyError, TypeError, ValueError):
-            spans.append({"id": it["annotation_id"], "start": None, "end": None, "evidence": None})
+def review_view(review: rw.Review, mode: str, source, pid: str, reviewer: str | None) -> dict:
+    """One posting: text segments, items with state, counts, blocking reasons and version for writes."""
+    if reviewer:
+        rw.check_reviewer(reviewer)
+    st = review.posting_state(reviewer, mode, source, pid)
+    text = review.text(mode, pid)
+    spans = [{"id": i["annotation_id"], "start": i["current"].get("evidence_start"),
+              "end": i["current"].get("evidence_end"), "evidence": i["current"].get("evidence_text")}
+             for i in st["items"] if i["state"] not in ("rejected", "split")]
     segs, invalid = segment_text(text, spans)
-    bad = {i["id"] for i in invalid}
-    for it in items:
-        it["offset_valid"] = it["annotation_id"] not in bad
-    review_row = next((r for r in csv.DictReader(open(_source_path(ctx, source).with_name("postings_review.csv"),
-                                                      encoding="utf-8", newline="")) if r["posting_id"] == pid), {})
-    return {"source": source, "label": f"{AI_LABEL} drafts", "posting_id": pid, "title": ctx.dev[pid]["title"].strip(),
-            "posting_notes": review_row.get("review_notes", ""), "segments": segs, "items": items,
-            "invalid_offsets": invalid, "clean_text_sha256": ctx.dev[pid]["clean_text_sha256"]}
+    st.update(segments=segs, invalid_offsets=invalid,
+              label=f"{AI_LABEL} drafts" if mode == "development" else
+              "Independent evaluation annotation: no AI drafts, predictions or suggestions are shown",
+              guidelines=rw.guidelines_version(review.ctx.root))
+    for it in st["items"]:
+        it["history"] = [{k: e.get(k) for k in ("timestamp", "reviewer_id", "action", "reason", "comment")}
+                         for e in it["history"]]
+    return st
 
 
-def _record(ctx: Context, text: str, pid: str, aid: str, body: dict) -> dict:
-    stmt = (body.get("skill_statement") or "").strip()
-    if not stmt:
-        raise DashboardError("skill_statement is required")
-    req = body.get("required_or_preferred")
-    if req not in an.REQUIREMENT_VALUES:
-        raise DashboardError(f"required_or_preferred must be one of {sorted(an.REQUIREMENT_VALUES)}")
-    cat = body.get("skill_category") or ""
-    if cat not in an.SKILL_CATEGORIES:
-        raise DashboardError(f"skill_category must be empty or one of {sorted(an.SKILL_CATEGORIES - {''})}")
-    alt = (body.get("alternative_group_id") or "").strip()
-    if alt and not an.ALT_GROUP_RE.match(alt):
-        raise DashboardError("alternative_group_id must be letters/digits/_/./- (max 40)")
-    occ, st = body.get("occurrence"), body.get("evidence_start")
-    if occ is not None and not isinstance(occ, int) or st is not None and not isinstance(st, int):
-        raise DashboardError("occurrence and evidence_start must be integers")
-    s, e = place_evidence(text, body.get("evidence_text"), occ, st)
-    return {"snapshot_id": ctx.snapshot, "posting_id": pid, "annotation_id": aid, "skill_statement": stmt,
-            "evidence_text": text[s:e], "evidence_start": s, "evidence_end": e, "required_or_preferred": req,
-            "alternative_group_id": alt, "skill_category": cat, "review_notes": (body.get("review_notes") or "").strip()}
-
-
-def save_decision(ctx: Context, body: dict) -> dict:
-    reviewer = _reviewer(body.get("reviewer_id"))
-    source, pid, action = body.get("source"), body.get("posting_id"), body.get("action")
-    src = _source_path(ctx, source)
-    if action not in ACTIONS:
-        raise DashboardError(f"action must be one of {sorted(ACTIONS)}")
-    text = ctx.dev_text(pid)
-    drafts = {r["annotation_id"]: r for r in csv.DictReader(open(src, encoding="utf-8", newline=""))
-              if r["posting_id"] == pid}
-    prior = [d for d in load_decisions(ctx, reviewer) if d["source"] == source and d["posting_id"] == pid]
-    added = {d["annotation_id"] for d in prior if d["action"] == "add"}
-    if action == "add":
-        aid = f"{reviewer}-add-{uuid.uuid4().hex[:10]}"
-        origin = "reviewer"
-    else:
-        aid = body.get("annotation_id")
-        if aid not in drafts and aid not in added:
-            raise DashboardError(f"{aid!r} is not a record of {source} for {pid}", 404)
-        origin = "draft" if aid in drafts else "reviewer"
-    record = None
-    if action in ("edit", "add"):
-        record = _record(ctx, text, pid, aid, body)
-    elif action == "accept":
-        r = drafts.get(aid)
-        if r is None:
-            raise DashboardError("accept applies to draft records; edit an added record instead")
-        s, e = int(r["evidence_start"]), int(r["evidence_end"])
-        if text[s:e] != r["evidence_text"]:
-            raise DashboardError("the draft's evidence does not match clean_text; edit it before accepting", 409)
-        record = {k: r[k] for k in ("snapshot_id", "posting_id", "annotation_id", "skill_statement", "evidence_text",
-                                    "evidence_start", "evidence_end", "required_or_preferred",
-                                    "alternative_group_id", "skill_category", "review_notes")}
-        record["evidence_start"], record["evidence_end"] = s, e
-    elif action == "reject":
-        record = drafts.get(aid) or next(d["record"] for d in reversed(prior) if d["annotation_id"] == aid)
-    decision = {"decision_id": uuid.uuid4().hex, "timestamp": now_iso(), "reviewer_id": reviewer,
-                "source": source, "source_skills_sha256": sha256_bytes(src.read_bytes()),
-                "posting_id": pid, "clean_text_sha256": ctx.dev[pid]["clean_text_sha256"],
-                "annotation_id": aid, "origin": origin, "action": action, "record": record,
-                "original": drafts.get(aid), "comment": (body.get("comment") or "").strip()}
-    p = decisions_path(ctx, reviewer)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:  # append-only log; earlier decisions are never rewritten
-        f.write(json.dumps(decision, ensure_ascii=False) + "\n")
-    return {"saved": decision}
-
-
-def locate(ctx: Context, pid: str, evidence: str) -> dict:
-    text = ctx.dev_text(pid)
-    hits, i = [], text.find(evidence) if evidence else -1
-    while i >= 0:
-        hits.append(i)
-        i = text.find(evidence, i + 1)
+def locate(review: rw.Review, mode: str, pid: str, evidence: str) -> dict:
+    text = review.text(mode, pid)
+    hits = rw.occurrences(text, evidence)
     return {"posting_id": pid, "evidence_text": evidence, "occurrences": hits,
             "contexts": [text[max(0, h - 40):h + len(evidence) + 40] for h in hits[:10]]}
+
+
+def export_summary(exp: dict, limit: int = 400) -> dict:
+    return {k: exp[k] for k in ("reviewer", "mode", "source", "status", "gold", "postings", "total_postings",
+                                "problems", "note", "guidelines")} | {
+        "skill_row_count": len(exp["skill_rows"]), "skill_rows": exp["skill_rows"][:limit],
+        "reviewed_postings": [r["posting_id"] for r in exp["review_rows"] if r["review_status"] == "reviewed"]}
+
+
+def export_csv(exp: dict, name: str) -> bytes:
+    import io
+    fields, rows = {"skills.csv": (an.SKILL_FIELDS, exp["skill_rows"]),
+                    "postings_review.csv": (an.REVIEW_FIELDS, exp["review_rows"])}.get(name, (None, None))
+    if fields is None:
+        raise DashboardError("file must be skills.csv or postings_review.csv")
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=fields, lineterminator="\n")
+    w.writeheader()
+    w.writerows(rows)
+    return buf.getvalue().encode("utf-8")
 
 
 # ------------------------------------------------------------------------- WSGI app
@@ -475,6 +328,7 @@ SECURITY_HEADERS = (
 class App:
     def __init__(self, ctx: Context, port: int = 8765):
         self.ctx, self.port = ctx, port
+        self.review = rw.Review(ctx, ctx.reviewed_dir)
 
     def _json(self, start, obj, status="200 OK"):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -519,15 +373,25 @@ class App:
                     "/api/runs": lambda: list_runs(self.ctx),
                     "/api/run": lambda: run_detail(self.ctx, g("run_id")),
                     "/api/run/posting": lambda: run_posting(self.ctx, g("run_id"), g("posting_id")),
-                    "/api/review": lambda: review_overview(self.ctx, g("source") or REVIEW_SOURCES[0], g("reviewer")),
-                    "/api/review/posting": lambda: review_posting(self.ctx, g("source") or REVIEW_SOURCES[0],
-                                                                  g("posting_id"), g("reviewer")),
-                    "/api/locate": lambda: locate(self.ctx, g("posting_id"), g("evidence") or ""),
+                    "/api/review": lambda: self.review.overview(g("reviewer"), _mode(environ, q), g("source")),
+                    "/api/review/posting": lambda: review_view(self.review, _mode(environ, q), g("source"),
+                                                               g("posting_id"), g("reviewer")),
+                    "/api/locate": lambda: locate(self.review, _mode(environ, q), g("posting_id"), g("evidence") or ""),
+                    "/api/export/preview": lambda: export_summary(
+                        self.review.build_export(g("reviewer"), _mode(environ, q), g("source"))),
                 }
                 if path in routes:
                     return self._json(start, routes[path]())
+                if path == "/api/export/download":
+                    exp = self.review.build_export(g("reviewer"), _mode(environ, q), g("source"))
+                    name = g("file") or ""
+                    body = export_csv(exp, name)
+                    fname = f"{exp['reviewer']}-{exp['mode']}-{exp['status']}-{name}"
+                    start("200 OK", [("Content-Type", "text/csv; charset=utf-8"), ("Content-Length", str(len(body))),
+                                     ("Content-Disposition", f'attachment; filename="{fname}"')] + list(SECURITY_HEADERS))
+                    return [body]
                 raise DashboardError("not found", 404)
-            if method == "POST" and path == "/api/review/decision":
+            if method == "POST" and path in ("/api/review/decision", "/api/export"):
                 # same-origin JSON only: a custom header forces a CORS preflight, which is never answered
                 if environ.get("HTTP_X_DASHBOARD") != "1" or \
                         not environ.get("CONTENT_TYPE", "").startswith("application/json"):
@@ -541,9 +405,18 @@ class App:
                     raise DashboardError("invalid JSON") from None
                 if not isinstance(body, dict):
                     raise DashboardError("invalid JSON object")
-                return self._json(start, save_decision(self.ctx, body), "201 Created")
+                mode = body.get("mode") or "development"
+                if mode == "evaluation" and environ.get(EVAL_HEADER) != "evaluation":
+                    raise DashboardError("evaluation postings are only available in explicit evaluation annotation mode", 403)
+                if path == "/api/export":
+                    return self._json(start, {"written": self.review.write_export(body.get("reviewer_id"), mode,
+                                                                                  body.get("source"))}, "201 Created")
+                event, created = self.review.apply(body)
+                view = review_view(self.review, mode, body.get("source"), body["posting_id"], body["reviewer_id"])
+                return self._json(start, {"saved": event, "created": created, "state": view},
+                                  "201 Created" if created else "200 OK")
             raise DashboardError("method not allowed", 405)
-        except DashboardError as e:
+        except (DashboardError, rw.ReviewError) as e:
             status = {400: "400 Bad Request", 403: "403 Forbidden", 404: "404 Not Found", 405: "405 Method Not Allowed",
                       409: "409 Conflict", 413: "413 Payload Too Large"}[e.status]
             return self._json(start, {"error": str(e), **e.extra}, status)
@@ -557,8 +430,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--db", type=Path, default=None)
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--reviews-dir", type=Path, default=None, help="default: data/annotation/sprint2_v1/reviews")
+    ap.add_argument("--reviewed-dir", type=Path, default=None,
+                    help="export target, default: data/annotation/sprint2_v1/reviewed (never annotators/)")
     a = ap.parse_args(argv)
-    ctx = Context(a.root.resolve(), a.db, a.reviews_dir)
+    ctx = Context(a.root.resolve(), a.db, a.reviews_dir, a.reviewed_dir)
     with make_server("127.0.0.1", a.port, App(ctx, a.port)) as srv:
         print(f"Team B dashboard on http://127.0.0.1:{a.port}/ (Ctrl+C to stop)")
         try:

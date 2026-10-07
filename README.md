@@ -195,9 +195,11 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/sprint1_exploratio
 
 ## Sprint 2 preparation: human skill annotation (Team B)
 
-**Status:** the selection is frozen and the workflow is ready. **No annotations exist yet**
-(no gold labels, no LLM pre-labelling). See `reports/sprint2_annotation_preparation.md` and
-`docs/skill_annotation_guidelines.md`.
+**Status:** the selection is frozen and the workflow is ready. **No human annotations or gold
+labels exist yet.** AI-assisted drafts for the 20 development postings sit in separate
+`annotators/ai_draft/` and `annotators/ai_revised/` workspaces, labelled as AI drafts and not
+human-reviewed (see `docs/claude_usage_log.md`). See `reports/sprint2_annotation_preparation.md`
+and `docs/skill_annotation_guidelines.md`.
 
 ```bash
 # 100 usable postings: 20 development + 80 evaluation (the split is PROPOSED), seed 20261006
@@ -305,47 +307,102 @@ new dependencies, CDNs or external requests.
   - `data/extraction/runs/`
   - the AI draft workspaces `annotators/ai_revised` and `annotators/ai_draft`
 - **Held-out data:**
-  - The text of the 80 evaluation postings is never shown, nor that of any posting grouped
-    with one in the frozen manifest (near-identical variants).
-  - The extraction and review views accept development postings only.
-  - The human annotator folders are not loaded.
+  - The text of the 80 evaluation postings appears **only** in the explicit evaluation
+    annotation mode, with no AI drafts or predictions. The corpus explorer, extraction
+    results and development review never show it.
+  - Non-selected variants grouped with an evaluation posting are never shown.
+  - The extraction and development review views accept development postings only, and the
+    human annotator folders are not loaded.
 - **Extraction results** are labelled *AI-generated, unreviewed* and shown exactly as
   stored:
   - Evidence is highlighted only where the stored offsets match `clean_text`; mismatches
     are flagged, never moved.
   - Illustrative examples, categories and individual requirements are badged differently.
   - Postings without a result show an empty state.
-- **Annotation review:** accept, edit, reject, reopen, or add a skill.
-  - Evidence must be copied exactly. The server computes the offsets and asks for an
-    occurrence when the text repeats.
-  - Decisions are appended, never rewritten, to
-    `data/annotation/sprint2_v1/reviews/<reviewer_id>/decisions.jsonl`. Each entry has the
-    reviewer ID, a UTC timestamp, the draft file and `clean_text` hashes, and the original
-    draft row.
-  - Drafts and `clean_text` are never changed.
-  - DISCUSS, illustrative and AI-suggested records stay visibly flagged.
-  - These are human review decisions, so the folder is tracked like the annotator CSVs.
-- **Tests:** `tests/test_dashboard.py` (29 tests, including one against a real `wsgiref` server).
-- **Browser verification (2026-10-07):** `tests/browser/verify_dashboard.py` drove the
-  installed Google Chrome headlessly with Playwright 1.63, against a dashboard started with a
-  **temporary** `--reviews-dir` and the test reviewer `pwtest`. **50/50 checks passed**:
-  - all three views; filters, search, scrolling and the 5 figures
-  - the pilot run with badges, tinted highlights and empty states
-  - accept, edit, reject, reopen, and add skill, including from a text selection
-  - invalid evidence errors and the repeated-evidence occurrence picker
-  - decisions surviving a page refresh
-  - held-out texts refused (403)
-  - no horizontal scroll at 390 px wide
-  - no unexpected console errors
+- **Annotation review** (`src/review_workflow.py`): complete annotation in the browser, with no CSV
+  editing and no annotation commands.
+  - **Two modes.**
+    - *Development review* works through the AI drafts (`ai_revised` or `ai_draft`) of the 20
+      development postings.
+    - *Evaluation annotation* covers the 80 evaluation postings: original text, empty skill
+      lists, and no AI drafts, predictions or highlights. It opens only after an explicit
+      confirmation, and its text is served only with the `X-Dashboard-Mode: evaluation`
+      header. Corpus, extraction and development review still refuse it, and the frozen split
+      and the extractor's development-only guard are unchanged.
+  - **Actions:** accept, edit (wording, exact evidence, required/preferred/unspecified,
+    category, alternative group, notes), reject (delete in evaluation mode), reopen, add,
+    **split** (the original stays in the history as *split*; each part links back through
+    `split_from`), and **resolve discussion**, which needs a recorded reason. There is no bulk
+    accept.
+  - **Evidence** must be copied exactly. The server computes offsets against the original
+    `clean_text` and asks for an occurrence when the text repeats. Selecting text in the
+    posting fills the evidence field.
+  - **The page:** posting text sits beside the skill cards, and clicking a card highlights and
+    scrolls to its evidence. Filters (pending, accepted, edited, rejected, added/split,
+    discussion) show live counts. AI provenance notes sit behind **Details**, while DISCUSS
+    and stale warnings stay visible. Previous/next buttons and overall progress are at the
+    top. Saving shows *Saving…*, then *Saved* only after the write succeeds, or an error or
+    conflict.
+  - **Completion** ("Mark posting reviewed") is an explicit human action.
+    - It needs every suggestion decided, every blocking discussion resolved, no stale
+      records and valid alternative groups.
+    - You must confirm that you read the full description and checked for missing skills. A
+      posting with no records needs a deliberate zero-skill confirmation.
+    - It records the reviewer, a timestamp, the text hash, the draft hash and the guidelines
+      version.
+    - Any later change, or "Reopen posting", invalidates the completion until it is
+      reconfirmed.
+  - **Integrity:**
+    - Decisions are appended, never rewritten, to `reviews/<reviewer>/decisions.jsonl`
+      (git-ignored: review logs and `reviewed/` exports stay local for now), and
+      the state is replayed from that log after a refresh or a server restart.
+    - Every write carries the posting version it expected (a stale tab gets a **conflict**,
+      never a silent overwrite), the draft file hash (a changed draft is refused and flagged
+      as *stale*), and a client request ID (a repeated click is never written twice).
+    - Events record `actor: human`, and AI workspace names are refused as reviewer IDs.
+  - **Export** (Export… dialog):
+    - Builds the existing annotation CSV format (`skills.csv`, `postings_review.csv`) from
+      your latest decisions: rejected records are omitted, and additions and split parts are
+      included.
+    - Validates it with `annotations.validate`, shows a preview, and offers downloads.
+    - "Write export folder" writes a **new** folder,
+      `reviewed/<reviewer>/<mode>-<timestamp>/` (CSVs, `provenance.jsonl`, `export.json`). It
+      is never written under `annotators/`, and an invalid export is refused.
+    - Exports are marked **partial** or **complete** (every posting in that mode marked
+      reviewed), and **never gold** until adjudicated. Each row's notes keep the AI-assisted
+      origin and the human decision.
 
-  The real `reviews/` folder was not written, and every source file stayed byte-identical.
-  Playwright is an optional tool, not a project dependency. To rerun (screenshots go to the
-  git-ignored `reports/dashboard_screenshots/`):
+  ```bash
+  .venv/bin/python src/dashboard.py --reviews-dir /tmp/try_reviews --reviewed-dir /tmp/try_reviewed  # practice run
+  .venv/bin/python src/dashboard.py   # real review: decisions in reviews/, exports in reviewed/
+  ```
+- **Tests:**
+  - `tests/test_dashboard.py` (14 route and safety tests, including one against a real
+    `wsgiref` server)
+  - `tests/test_review_workflow.py` (31 workflow tests)
+- **Browser verification (2026-10-07, review workflow):** `tests/browser/verify_dashboard.py`
+  drove the installed Google Chrome headlessly with Playwright 1.63, against a dashboard
+  started with **temporary** `--reviews-dir` and `--reviewed-dir` and the test reviewer
+  `pwtest`. **74/74 checks passed:**
+  - corpus and extraction views
+  - accept, edit, reject, reopen, add and split
+  - repeated evidence, invalid evidence, and discussion resolution
+  - completion, invalidation and reconfirmation
+  - refresh persistence, previous/next navigation, and a double click writing once
+  - a stale second tab getting a conflict, then reloading
+  - export preview, download and write
+  - the evaluation gate, an empty start, add/delete/reopen/complete and its own export
+  - held-out routes refused, no horizontal scroll at 390 px, and no unexpected console
+    errors
+
+  The real `reviews/` and `reviewed/` folders were not written, and every source and
+  workspace file stayed byte-identical. Playwright is optional. To rerun (screenshots go to
+  the git-ignored `reports/dashboard_screenshots/`):
 
   ```bash
   python -m venv /tmp/pwvenv && /tmp/pwvenv/bin/pip install playwright
-  .venv/bin/python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews &
-  /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py /tmp/dash_check /tmp/dash_reviews <eval_id> <variant_id>
+  .venv/bin/python src/dashboard.py --port 8765 --reviews-dir /tmp/dash_reviews --reviewed-dir /tmp/dash_reviewed &
+  /tmp/pwvenv/bin/python tests/browser/verify_dashboard.py /tmp/dash_check /tmp/dash_reviews /tmp/dash_reviewed <eval_id> <variant_id>
   ```
 
 ## Reference data: ESCO (Section B)

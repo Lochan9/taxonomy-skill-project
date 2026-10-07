@@ -1,0 +1,101 @@
+snapshot_id,posting_id,split,review_status,annotator_id,reviewed_at,review_notes
+20261006T171338Z,greenhouse:duolingo:8675713002,development,in_progress,,,"AI-DRAFT: 15 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:duolingo:8722385002,development,in_progress,,,"AI-DRAFT: 34 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | DISCUSS: Punjabi, Bengali, Urdu, Telugu, Tamil, Kannada are contextual/illustrative mentions; no records"
+20261006T171338Z,greenhouse:duolingo:8810661002,development,in_progress,,,"AI-DRAFT: 18 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | DISCUSS: experiential activations, earned-media stunts, OOH etc. are examples of idea formats; platform names (TikTok …) are not tool skills"
+20261006T171338Z,greenhouse:duolingo:8863967002,development,in_progress,,,"AI-DRAFT: 5 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Degree, portfolio, GPA, availability and Duolingo streak are not skill statements (§2)"
+20261006T171338Z,greenhouse:figma:6013304004,development,in_progress,,,"AI-DRAFT: 29 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:figma:6112135004,development,in_progress,,,"AI-DRAFT: 12 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:figma:6131079004,development,in_progress,,,"AI-DRAFT: 15 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Project formats (launch films, explainer videos, walkthroughs) are not recorded as production skills"
+20261006T171338Z,greenhouse:figma:6152695004,development,in_progress,,,"AI-DRAFT: 23 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Engineering-interest areas (Product, Platform, Security, Open) are placement preferences, not qualifications"
+20261006T171338Z,greenhouse:figma:6191697004,development,in_progress,,,"AI-DRAFT: 13 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:oura:4156667009,development,in_progress,,,"AI-DRAFT: 20 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | The business-model qualification is repeated verbatim; one record each, at the first R mention"
+20261006T171338Z,greenhouse:oura:4386217009,development,in_progress,,,"AI-DRAFT: 45 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:oura:4409462009,development,in_progress,,,"AI-DRAFT: 22 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:oura:4419167009,development,in_progress,,,"AI-DRAFT: 25 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:oura:4429661009,development,in_progress,,,"AI-DRAFT: 50 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Certifications (Databricks Certified …) are qualifications, not skill records"
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8049037,development,in_progress,,,"AI-DRAFT: 25 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Company values section excluded (extraction policy open question 3)"
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8188707,development,in_progress,,,"AI-DRAFT: 7 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | DISCUSS: 'PhD in ML, NLP, computer vision, or the equivalent practical experience' is an academic qualification (§2); no ML/NLP/CV skill records | Company values section excluded; 'willingness to learn a must' is an attitude (no record)"
+20261006T171338Z,greenhouse:robinhood:4738660,development,in_progress,,,"AI-DRAFT: 17 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold"
+20261006T171338Z,greenhouse:robinhood:8175213,development,in_progress,,,"AI-DRAFT: 18 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | 'Leadership expectations' section is generic leader expectations; not used as evidence"
+20261006T171338Z,greenhouse:robinhood:8197614,development,in_progress,,,"AI-DRAFT: 11 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | 'Organized and detail-oriented' are attributes (no record); 'Google Suite' not split into apps"
+20261006T171338Z,greenhouse:robinhood:8202146,development,in_progress,,,"AI-DRAFT: 33 ChatGPT-assisted draft skill rows; in_progress = unfinished draft, NOT human-reviewed or approved; not hand-labelled, not gold | Degree, auditor certifications and industry experience are not skill records; MAS is a regulator, not recorded"
+20261006T171338Z,greenhouse:duolingo:8562297002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8576434002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8602840002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8610345002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8612120002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8637185002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8654296002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8691257002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8700582002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8705196002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8747077002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8750456002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8761428002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8764849002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8784381002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8806187002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8827944002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:duolingo:8851677002,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5552560004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5552580004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5722244004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5735493004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5969046004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:5989185004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6104505004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6111625004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6112112004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6119198004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6144873004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6145639004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6178857004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6180053004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6199185004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6207950004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6208999004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:figma:6214991004,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4024438009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4110483009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4139939009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4215787009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4247176009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4257181009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4279727009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4295034009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4301714009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4304779009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4324331009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4324538009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4360990009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4386213009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4388843009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4411439009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4419213009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:oura:4424202009,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:7961602,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8054131,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8054379,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8157465,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8221194,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8221491,evaluation,not_started,,,
+20261006T171338Z,greenhouse:recursionpharmaceuticals:8234254,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:7490017,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:7943204,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:7997218,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8003233,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8008723,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8044746,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8077864,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8112333,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8123225,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8142278,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8144996,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8159896,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8198153,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8199973,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8202858,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8211366,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8214142,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8226687,evaluation,not_started,,,
+20261006T171338Z,greenhouse:robinhood:8244634,evaluation,not_started,,,

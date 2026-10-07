@@ -1,4 +1,4 @@
-# Skill Annotation Guidelines (Team B, Sprint 2), v0.2.1 DRAFT
+# Skill Annotation Guidelines (Team B, Sprint 2), v0.2.2 DRAFT
 
 **Purpose:** humans label the skill statements in the 100-posting set
 (`data/annotation/sprint2_v1/`), so that Sprint 2 extraction can be measured with precision
@@ -152,9 +152,15 @@ requirement and any one of them meets it.
   "such as", a list of areas): choose one reading and mark `DISCUSS:`. §9 lists the pilot
   cases.
 
-- **How to record:** give every record in the set the **same `alternative_group_id`**, a
-  short id unique within the posting such as `alt-1` or `alt-2`. The group means **at least
-  one of these** is required (or preferred).
+- **How to record:** give every record in the set the **same `alternative_group_id`**. The
+  group means **at least one of these** is required (or preferred).
+- **Id rules (as the validator checks them):**
+  - **Format:** start with a letter or digit, then letters, digits, `_`, `.` or `-`, 40
+    characters at most (e.g. `alt-1`).
+  - **Unique within the annotator's whole `skills.csv`, not just the posting.** An id
+    used in two postings is rejected ("an alternative group belongs to one posting").
+    Number groups across the file (`alt-1`, `alt-2`, `alt-3`, …), or prefix them with the
+    posting (`p05-alt-1`).
 - **Shared requirement value:** all members share one `required_or_preferred`, and the
   validator rejects mixed values.
 - **Size and scope:** a group needs **two or more** different skills in **one** posting.
@@ -255,7 +261,7 @@ related to it**, so the guidelines don't leak evaluation postings. Snapshot:
 | `greenhouse:figma:5551532004` (Software Engineer – ML) | `collaboration` / `communication skills` | 3255–3268 / 3273–3293 | *collaboration*, *communication* (transferable) | preferred ("While not required…") |
 | same | `C++` / `Go` (from "additional languages such as C++ or Go", 3081–3119) | 3110–3113 / 3117–3119 | *C++*, *Go* (tool), **no group**: an illustrative list, not an alternative set. "additional languages" is too vague to record. Both get `DISCUSS: illustrative list` (§3b) | preferred ("is a plus, but not required") |
 | same | `ML libraries` / `PyTorch` / `TensorFlow` / `Scikit-learn` / `Spark MLlib` / `XGBoost` (from "ML libraries like …", 2443–2519) | 2443–2455 / 2461–2468 / 2470–2480 / 2482–2494 / 2496–2507 / 2512–2519 | *ML libraries* (category, tool); five library records, **no group**, each with `DISCUSS: illustrative list` (a `required` list, so separate records may overstate it) | required ("We'd love to hear from you If you have") |
-| `greenhouse:oura:4203623009` (Senior Product Design Engineer) | `3D CAD` / `NX` / `Solidworks` | 1523–1529 / 1531–1533 / 1537–1547 | *3D CAD modelling* (no group); *NX*, *Solidworks* **`alt-1`** (`DISCUSS:` alternative or illustrative, see borderline) | required |
+| `greenhouse:oura:4203623009` (Senior Product Design Engineer) | `3D CAD` / `NX` / `Solidworks` | 1523–1529 / 1531–1533 / 1537–1547 | *3D CAD modelling* (no group); *NX*, *Solidworks* **`alt-3`** (`DISCUSS:` alternative or illustrative, see borderline) | required |
 | `greenhouse:figma:5647851004` (Account Executive, SMB, London) | `revenue forecasting` (duty) | 1349–1368 | *revenue forecasting* (technical) | unspecified (responsibilities only) |
 | same | `Salesforce` (duty at 1372–1382, requirement at 1785–1795) | **1785–1795** | *Salesforce* (tool). One record, at the requirements mention (§3a, §7) | required |
 | `greenhouse:duolingo:8628658002` (Senior/Software Engineer II, Android) | `Kotlin` (duty at 1870–1876, requirement at 2062–2068) | **2062–2068** | *Kotlin* (tool). One record, at the requirements mention | required |
@@ -293,7 +299,7 @@ occurrence, the one in the qualifications list: `locate … --text "collaboratio
 | same | "Manage a 360 deal cycle" (1273–1296) | *full-cycle deal management*: faithful normalisation, or task-only? (§3a) |
 | `greenhouse:oura:4203623009` | "Drive product development with our manufacturing partners in Asia, North America, and Europe" (1017–1109; "product development" at 1023–1042) | Is *product development* a skill here, or the scope of the job? (§3a) |
 | same | "break them, and iterate quickly" (1139–1170) | Part of prototyping, or separate (*prototype testing*, *rapid iteration*)? Default: no extra record (§3a) |
-| same | "3D CAD (NX or Solidworks)" (1523–1548) | Alternative set (the default, `alt-1`) or an illustrative list of CAD tools? (§3b) |
+| same | "3D CAD (NX or Solidworks)" (1523–1548) | Alternative set (the default, `alt-3`) or an illustrative list of CAD tools? (§3b) |
 | `greenhouse:duolingo:8628658002` | "set technical direction" (1890–1913) | *setting technical direction* is faithful; *technical leadership* would be a different wording. Record or not? (§3a) |
 | same | "Kotlin on Android" (2062–2079, under "You have…") | Does it make *Android application development* `required`, or only *Kotlin*? (§3a, §7) |
 | `greenhouse:figma:5551532004` | "mentoring or leading others" (2662–2689, required) | Alternatives (`alt-n`: *mentoring* / *leadership*) or two separately valued abilities? (§3b) |
@@ -316,6 +322,7 @@ occurrence, the one in the qualifications list: `locate … --text "collaboratio
      postings.
    - `annotation_id` must be unique per file. The suggested format is `<annotator>-0001`.
    - `alternative_group_id` is optional: fill it only for "X or Y" alternative sets (§3b).
+     Each id must be unique across your whole `skills.csv` (one group, one posting).
 3. **Validate often:**
    `python src/annotations.py validate --db … --dir data/annotation/sprint2_v1/annotators/<id>`.
    It reports every problem with file, line and field (e.g. mismatched offsets, with the
@@ -339,6 +346,10 @@ occurrence, the one in the qualifications list: `locate … --text "collaboratio
    annotator and adjudicated CSVs; the exported texts stay git-ignored.
 
 ### Changelog
+- v0.2.2 (2026-10-06): §3b and §10 now state the alternative-group id rules exactly as the
+  validator enforces them: the format, and uniqueness across the whole `skills.csv`
+  rather than within one posting. The worked examples use file-unique ids (the Oura
+  NX/Solidworks group is now `alt-3`). Labelling rules unchanged.
 - v0.2.1 (2026-10-06): explicit actions can state skills. A faithful normalisation of an
   ability stated as a verb phrase is annotated ("Build a lot of prototypes" →
   *prototyping*), with a four-point test and inference counter-examples (§1, §2, §3a, §6).

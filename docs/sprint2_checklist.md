@@ -22,7 +22,7 @@ Source: `docs/master_project_description.pdf` p.3. Tags as in `docs/sprint1_chec
 
 ## Annotation preparation (done locally, no labels yet)
 
-- [x] Annotation guidelines **v0.2.1 draft** (`docs/skill_annotation_guidelines.md`), with
+- [x] Annotation guidelines **v0.2.2 draft** (`docs/skill_annotation_guidelines.md`), with
       positive, negative and borderline pilot examples taken from outside the set
   - [x] Skills explicitly expressed in duties are annotated; task-only statements are not (§3a)
   - [x] Abilities stated as actions are faithfully normalised ("Build prototypes" →
@@ -91,7 +91,19 @@ Source: `docs/master_project_description.pdf` p.3. Tags as in `docs/sprint1_chec
   - evaluation texts and labels held out
   - 29 tests
   - browser-verified with Playwright (50/50 checks, temporary review directory)
-- [ ] Human review of the development drafts in the dashboard (no decisions recorded yet)
+- [x] Browser annotation workflow (`src/review_workflow.py`, 31 tests, 74/74 browser checks):
+  - development review of the AI drafts: accept / edit / reject / reopen / add / split,
+    resolving discussions with a reason
+  - explicit posting completion (confirmations, zero-skill option, invalidated by later
+    changes)
+  - validated partial/complete exports to `reviewed/` (never gold)
+  - independent evaluation mode for the 80 evaluation postings (no AI shown)
+  - append-only log with version conflicts, stale-draft detection and duplicate-click
+    protection
+- [ ] Human review of the 20 development drafts in the dashboard (no real decisions recorded yet)
+- [ ] Independent annotation of the 80 evaluation postings in evaluation mode (none recorded yet)
+- [ ] Decide whether `reviews/` and `reviewed/` exports are committed (human labels; git-ignored and kept local for now) and who
+      adjudicates
 - [ ] Load accepted statements into `statements` rows (`kind = skill`, offsets under the
       shared convention, contract §12) once the shared database (D3) is agreed
 - [ ] Quality report: P/R on the evaluation postings (and on all 100 if required), per

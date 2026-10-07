@@ -5,7 +5,7 @@
 extraction was used.
 
 - **Selection manifest:** `data/annotation/sprint2_v1/selection_manifest.csv` (tracked).
-- **Guidelines:** `docs/skill_annotation_guidelines.md` (v0.2.1 draft: skills inside duties are annotated, including abilities stated as actions; "X or Y" alternatives are grouped, illustrative "such as" lists are not by default).
+- **Guidelines:** `docs/skill_annotation_guidelines.md` (v0.2.2 draft: skills inside duties are annotated, including abilities stated as actions; "X or Y" alternatives are grouped, illustrative "such as" lists are not by default).
 - **Tools:** `src/select_annotation_set.py` and `src/annotations.py`.
 
 ## 1. Scope and a proposed deviation from the brief
