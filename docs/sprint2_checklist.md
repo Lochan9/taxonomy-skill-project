@@ -51,13 +51,40 @@ Source: `docs/master_project_description.pdf` p.3. Tags as in `docs/sprint1_chec
 - [ ] Adjudication into `adjudicated/`, then `validate --final` passes, then commit. Only
       then call it gold
 
-## Extraction (not started; no extraction implemented)
+## Extraction (implemented; 3-posting pilot run)
 
 - [ ] Decide the open extraction-policy questions (pay sections, recruiting notices, values
       sections, shared near-duplicate review)
-- [ ] Build the versioned extraction input under `docs/extraction_input_policy.md`
-- [ ] Implement extraction; `statements` rows with `kind = skill` and offsets under the
-      shared convention (contract §12)
+- [ ] Build the versioned extraction input under `docs/extraction_input_policy.md`. Until
+      then, the extractor reads the full unchanged `clean_text` (P5/P6 conservative
+      default)
+- [x] LLM extractor `src/extract_skills.py`, using the official Anthropic SDK behind a
+      provider interface:
+  - versioned prompt and JSON schema (`config/prompts/`, `config/schemas/`)
+  - local evidence and offset validation
+  - repeated-evidence handling
+  - zero-skill vs failed results
+  - caching, bounded retries and rate-limit handling, resumability
+  - token usage and run provenance
+  - `--dry-run`
+  - 28 tests with mocked responses
+- [x] Restricted to the 20 development postings. The evaluation postings are refused
+- [ ] **Confirm that the provider qualifies** under brief p.7 (free-tier or student-credit
+      provider). Recorded as university-provided Anthropic access, compliance
+      **unresolved**
+- [x] Enter `ANTHROPIC_API_KEY` locally in `.env`, run model discovery
+      (`models.list()`), then choose the pilot model and set `EXTRACTION_MODEL`
+- [x] Pilot prepared: 3 development postings (Duolingo 8675713002, Robinhood 4738660,
+      Recursion 8188707), full `clean_text`, dry run OK
+- [x] Model discovery done (13 models); pilot model `claude-sonnet-5-5` (user's choice)
+- [x] Pilot run `skx-20261007T003601Z` on 3 development postings: 3/3 ok, 35 statements,
+      0 rejected, 14,266 input / 7,860 output tokens, about $0.098
+- [ ] Review the pilot outputs against the guidelines, then run the remaining 17
+      development postings
+- [ ] Decide on the proposed `mention_relation` field for annotations and statements
+      (contract §12); `skills.csv` is unchanged
+- [ ] Load accepted statements into `statements` rows (`kind = skill`, offsets under the
+      shared convention, contract §12) once the shared database (D3) is agreed
 - [ ] Quality report: P/R on the evaluation postings (and on all 100 if required), per
       employer, posting-level vs role-level counts, and token usage
 

@@ -51,3 +51,9 @@ Thumbs.db
 
 # --- Annotation: exported posting texts are regenerable from the DB (labels ARE tracked) ---
 data/annotation/*/texts/
+
+# --- Skill extraction (src/extract_skills.py): cached/raw LLM responses and run outputs ---
+data/extraction/
+
+# --- Review exports that embed full posting texts (regenerable; keep out of Git) ---
+reports/development_annotation_review.json

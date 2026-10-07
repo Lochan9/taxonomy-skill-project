@@ -1,0 +1,45 @@
+# Skill extraction (Team B, Sprint 2). Read by src/extract_skills.py.
+#
+# The model is deliberately NOT set here: which models the account can use is not known.
+# Set it with --model or EXTRACTION_MODEL in .env after checking the account. The model ID
+# is part of the cache key, so changing it never reuses another model's responses.
+#
+# Bump prompt.version / schema.version whenever their files change; both are part of the
+# cache key and are recorded with every run and statement.
+
+provider: anthropic          # backend behind the provider interface; only "anthropic" is implemented
+provider_access: "university-provided Anthropic access"   # recorded in every run.json
+brief_p7_compliance: unresolved   # brief p.7: pipeline LLMs must be free-tier or student-credit providers.
+                                  # No document yet shows this access counts as student credit; do not claim it.
+model: null                  # required; e.g. set EXTRACTION_MODEL=<model id> in .env
+
+prompt:
+  version: "skill_extraction_v1"
+  path: config/prompts/skill_extraction_v1.md
+schema:
+  version: "skill_extraction_output_v1"
+  path: config/schemas/skill_extraction_output_v1.json
+
+request:
+  max_tokens: 16000          # non-streaming; a posting's skill list is far below this
+  effort: null               # optional output_config.effort (low|medium|high|xhigh|max); null = model default.
+                             # Leave null unless the chosen model supports effort.
+  cache_system_prompt: true  # cache_control on the (stable) system prompt; silently no-op below the model's minimum
+
+client:
+  timeout_seconds: 120       # per request
+  max_attempts: 4            # bounded attempts per posting for retryable errors (429, 5xx, timeouts, network)
+  backoff_base_seconds: 2.0  # exponential backoff with jitter: base * 2**attempt
+  backoff_max_seconds: 60.0
+  min_seconds_between_requests: 1.0   # client-side pacing to stay inside rate limits
+
+input:
+  # Initial pilot: the FULL unchanged clean_text is sent (boilerplate included). The versioned
+  # boilerplate-stripped extraction input (docs/extraction_input_policy.md P5-P7) is not built;
+  # full text follows the policy's conservative default (P6) and keeps offsets valid against clean_text.
+  text: full_clean_text
+  set_dir: data/annotation/sprint2_v1  # frozen selection; only its development split is allowed (see ALLOWED_SPLITS)
+  db: data/processed/taxonomy_pilot.sqlite
+
+output:
+  dir: data/extraction       # git-ignored: cache/, responses/, runs/

@@ -507,8 +507,141 @@ is skipped when the local DB is absent. This test found a straight apostrophe in
 validator code and templates. No labels filled in.
 **What we checked / changed:** *(team to fill in after review)*
 
+### 2026-10-06 — Skill extractor implemented, no real calls (Sprint 2)
+**Goal:** Implement Team B's LLM skill extractor and test it fully offline before any real
+run.
+
+**Read first:** the master brief (Sprint 2 p.3, LLM practices p.7), data contract (§1 IDs,
+§3 `statements`, §8 `runs`, §12 offsets), guidelines v0.2.2 and the extraction input policy.
+SDK usage was checked against the bundled Claude API reference and the live
+structured-outputs documentation (`output_config.format` with a JSON schema, closed
+objects, no min/max constraints, `refusal`/`max_tokens` void the schema). The SDK is
+`anthropic` 1.11.0.
+
+**Built:**
+- **Prompt and schema:** `config/prompts/skill_extraction_v1.md` and
+  `config/schemas/skill_extraction_output_v1.json`, both versioned.
+  - The prompt follows guidelines v0.2.2: atomic skills only; explicit actions faithfully
+    normalised; no inference; qualifications, durations, settings and boilerplate excluded;
+    strongest mention wins.
+  - Each record gives the evidence copied exactly, plus its context sentence.
+  - Requirement status is judged by the posting's own heading or wording.
+  - `mention_relation` (`direct` | `illustrative_example` | `category`) and `example_of`
+    keep examples apart from true alternatives.
+- **Config:** `config/extraction.yaml`, with `model: null` on purpose; the model must be
+  given with `--model` or `EXTRACTION_MODEL`.
+- **Extractor:** `src/extract_skills.py`. It calls the official Anthropic SDK behind a small
+  `Backend` interface (brief p.7) and owns its own retries (SDK `max_retries=0`). It also
+  has:
+  - **Scope guard:** `ALLOWED_SPLITS = {development}`, and each `clean_text` is checked
+    against the manifest SHA-256.
+  - **Validation:** a local schema check; evidence must occur exactly in `clean_text`;
+    offsets are computed locally; repeated evidence is resolved by context or rejected as
+    ambiguous; unsupported or duplicate records are rejected individually; invalid
+    alternative groups are dropped with a warning.
+  - **Results:** `ok`, `zero_skills` (valid and empty), `all_rejected` or `failed`.
+  - **Caching:** keyed by the text hash, model, prompt and schema versions and file hashes,
+    and request settings. Every response is archived, and invalid cached responses are
+    called again.
+  - **Retries and pacing:** bounded, with exponential backoff and `retry-after`, plus
+    client-side pacing.
+  - **Resumability:** `--resume` keeps completed postings and retries the rest.
+  - **Provenance and tokens:** `run.json` records the git commit, config, SDK version,
+    counts, failures and the token usage billed this run.
+  - **`--dry-run`:** no network, no key, nothing written.
+- **Tests:** 28 tests in `tests/test_extract_skills.py` (243 in total, all passing). They use
+  real SDK types, a fake client and the real SDK over an `httpx2.MockTransport`, and cover:
+  success, invalid JSON, schema violations, truncation, refusal, unsupported evidence,
+  repeated evidence, zero skills, rate limits (`retry-after`), bounded failures, cache
+  reuse and keying, resume, the development-only guard, dry run, and no key in outputs.
+- **Docs:**
+  - `.gitignore`: added `data/extraction/` and `reports/development_annotation_review.json`
+    (which contains full posting texts).
+  - `requirements.txt`: added `anthropic>=1.11,<2`.
+  - README and the Sprint 2 checklist updated.
+  - Data contract v0.5.3 (§12) documents `mention_relation` as a proposal; `skills.csv` is
+    unchanged.
+
+**Not done:** no real API call, so no extraction results or token counts. No ESCO
+mapping. No human labels or annotation files changed. Nothing committed.
+**Open:**
+- The brief (p.7) limits pipeline LLMs to free-tier or student-credit providers. Confirm
+  that the university Anthropic account qualifies, and which model it can use.
+- No refusal fallback is configured, because it is model-specific; a refusal is recorded
+  as `failed`.
+- The `statements` table load waits on D3.
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-06 — First extraction pilot prepared, not run (Sprint 2)
+**Goal:** Prepare a three-posting pilot of `src/extract_skills.py` without extracting
+anything.
+
+**Done:**
+- **Key check:** a yes/no check that prints no value. There is no `.env` file, so
+  `ANTHROPIC_API_KEY` is absent, and so is `EXTRACTION_MODEL`.
+- **Model discovery:** blocked, because there is no key. No model was guessed and no API
+  call was made. A discovery-only script (official `models.list()`, prints no credentials)
+  is ready to run once the key is entered locally.
+- **Provider:** recorded in `config/extraction.yaml` as `provider_access: "university-provided
+  Anthropic access"` with `brief_p7_compliance: unresolved`. Brief p.7 requires free-tier
+  or student-credit providers, and no document shows this access qualifies. The extractor
+  writes the config into every `run.json`.
+- **Input choice:** documented as `input.text: full_clean_text`. The pilot sends the full
+  unchanged `clean_text`, boilerplate included, because the boilerplate-stripped
+  extraction input (policy P5–P7) is not built. This follows the policy's conservative
+  default (P6) and keeps the offsets valid against `clean_text`.
+- **Pilot postings,** resolved from the frozen manifest (all development split):
+  - Senior Product Designer: `greenhouse:duolingo:8675713002`
+  - Senior Software Engineer, Data Engineering: `greenhouse:robinhood:4738660`
+  - Senior AI Researcher: `greenhouse:recursionpharmaceuticals:8188707`
+- **Dry run** on those three: no network, nothing written, model not set.
+
+**Not done:** no extraction, no model chosen; waiting for the user's choice after
+discovery. Annotation files are unchanged, and no evaluation posting was accessed.
+**What we checked / changed:** *(team to fill in after review)*
+
+### 2026-10-07 — First real extraction pilot: 3 development postings (Sprint 2)
+**Goal:** Run a baseline of `src/extract_skills.py` on three development postings. The
+model was the user's choice, `claude-sonnet-5-5`, picked from the account's
+`models.list()` results.
+
+**Setup:**
+- **Key handling:** the API key was moved from the tracked `.env.example` into a new,
+  git-ignored `.env` (mode 0600) without being displayed, and `.env.example` was restored
+  to its committed version. The key was found nowhere in git: not staged, not in any
+  commit, the reflog or the stashes.
+- **Model discovery:** 13 models were visible to the account.
+- **Provider:** `provider_access: "university-provided Anthropic access"`;
+  `brief_p7_compliance: unresolved`.
+- **Settings:** the existing prompt (`skill_extraction_v1`), schema and caching, with full
+  `clean_text`. Reasoning settings were unchanged (no `thinking`/`effort` sent, so the
+  model's default adaptive thinking applied).
+
+**Run:** `skx-20261007T003601Z`. A dry run first showed 3 calls were needed.
+- 3 of 3 postings `ok`; 0 failures, 0 retries.
+- 35 statements accepted, 0 rejected. All 35 evidence spans match the DB `clean_text`.
+  - Duolingo 8675713002: 12
+  - Recursion 8188707: 7
+  - Robinhood 4738660: 16
+- Repeated evidence resolved by context: 2 ("drug discovery", 6 occurrences; "Spark", 3).
+- **Tokens (actual, from `usage`):** input 5,686; cache writes 2,860; cache reads 5,720;
+  output 7,860, of which 2,964 were thinking tokens.
+- **Estimated cost** at official prices (Sonnet 5.5: $2 input, $2.50 5-min cache write,
+  $0.20 cache read, $10 output per MTok): about **$0.098**.
+
+**First observations (unreviewed):**
+- Duolingo keeps both *prototyping* (U) and *high fidelity prototyping* (R), although the
+  model's note says it consolidated them.
+- Spark is `required` as an illustrative example. It is also named in duties; the "strongest
+  mention" rule chose the required list.
+- The Robinhood data-stack areas are recorded as illustrative examples of "data stack".
+
+**Not done:** no evaluation postings; annotation labels unchanged; nothing committed.
+**What we checked / changed:** *(team to fill in after review)*
+
 ## LLM token usage (pipeline)
 
 | Sprint | Provider / model | Tokens in | Tokens out | Notes |
 |---|---|---|---|---|
 | 1 | — | 0 | 0 | No LLM used in the pipeline yet |
+| 2 | anthropic / claude-sonnet-5-5 | 14,266 (5,686 uncached + 2,860 cache write + 5,720 cache read) | 7,860 (incl. 2,964 thinking) | Pilot run skx-20261007T003601Z, 3 development postings, ≈ $0.098 |

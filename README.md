@@ -216,6 +216,74 @@ python src/annotations.py compare  --db data/processed/taxonomy_pilot.sqlite --a
 - **Tracked files:** the manifest, the templates and all human CSVs. The exported texts
   are not tracked.
 
+## Sprint 2: skill extraction with an LLM (Team B)
+
+**Status: implemented, tested with mocked responses, and piloted once.** Pilot run
+`skx-20261007T003601Z` used `claude-sonnet-5-5` on 3 development postings: 3 of 3 ok, 35
+statements accepted, 0 rejected, 14,266 input and 7,860 output tokens (about $0.098). Its
+output is AI-generated and unreviewed. The other 17 development postings have not been run.
+Mapping to ESCO is out of scope here.
+
+`src/extract_skills.py` sends each **development** posting's unchanged `clean_text` to an
+LLM. It uses the official Anthropic SDK behind a small provider interface (`Backend`), with
+structured JSON output. It then checks the result locally.
+
+```bash
+python src/extract_skills.py --dry-run --limit 3        # no network, no API key, writes nothing
+python src/extract_skills.py --model <model-id> --limit 3
+python src/extract_skills.py --model <model-id> --resume <run_id>
+```
+
+- **Scope:** only the frozen selection's 20 `development` postings (`ALLOWED_SPLITS`). The
+  80 evaluation postings are refused, and each text is checked against the manifest
+  SHA-256.
+- **Model and key:**
+  - The model is never guessed: pass `--model` or set `EXTRACTION_MODEL` in `.env` after
+    checking which models the account can use.
+  - `ANTHROPIC_API_KEY` is read from `.env` (or the environment). It is never printed or
+    stored.
+  - Optional request settings, such as `effort`, are in `config/extraction.yaml` and are off
+    by default.
+- **Prompt and schema (versioned):**
+  - `config/prompts/skill_extraction_v1.md` and
+    `config/schemas/skill_extraction_output_v1.json`
+  - Each skill record has a statement, exact `evidence_text` plus its `evidence_context`,
+    the section heading, `requirement_status`, `mention_relation` (`direct` |
+    `illustrative_example` | `category`, a proposed field; see data contract §12), the
+    `alternative_group`, and an optional category.
+- **Local validation:**
+  - The output must match the JSON schema.
+  - Evidence must occur exactly in `clean_text`. Offsets are computed locally, and the
+    model never supplies positions.
+  - Repeated evidence is resolved through its context sentence, or rejected as ambiguous.
+  - Unsupported or duplicate records are rejected individually (`rejected.jsonl`).
+  - Invalid alternative groups are dropped with a warning.
+- **Result per posting:**
+  - `ok`
+  - `zero_skills`: a valid empty result with a reason
+  - `all_rejected`
+  - `failed`: an API error after bounded retries, a refusal, truncation, invalid JSON or a
+    schema violation
+- **Cache and resumability:**
+  - Responses are cached under a key built from the `clean_text` hash, the model, the
+    prompt and schema versions and file hashes, and the request settings. A re-run is free,
+    and an invalid cached response is called again.
+  - Every response received is kept under `responses/`.
+  - `--resume` re-runs only unfinished or failed postings.
+- **Robustness:**
+  - per-request timeout
+  - bounded attempts with exponential backoff, honouring `retry-after` on 429
+  - client-side pacing; non-retryable 4xx errors fail at once
+- **Provenance:** `runs/{run_id}/run.json` records the model, prompt and schema versions
+  and hashes, the git commit, the config, the SDK version, counts, failures and the token
+  usage actually billed (`llm_tokens_in` / `llm_tokens_out`). Statement IDs follow contract
+  §1: `{run_id}:{posting_id}:skill:{n}`.
+- **Outputs:** `data/extraction/` (cache, responses, runs) is git-ignored.
+- **Open:** the brief (p.7) asks for a free-tier or student-credit provider. The access is
+  recorded as university-provided Anthropic access, with compliance **unresolved**
+  (`config/extraction.yaml`). Results are not yet loaded
+  into a `statements` table (the shared database, D3, is still open).
+
 ## Reference data: ESCO (Section B)
 
 **Status: ESCO v1.2.1 (English, classification, CSV) is imported into the local development

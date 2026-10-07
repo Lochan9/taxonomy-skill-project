@@ -1,6 +1,6 @@
-# Shared Data Contract (DRAFT v0.5.1)
+# Shared Data Contract (DRAFT v0.5.3)
 
-**Status:** Draft v0.5.1 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
+**Status:** Draft v0.5.3 proposed by Section B (skills) for review by Section A (tasks). Not agreed yet.
 **Required by:** the end of Sprint 1. The brief says "Both groups must agree on a shared schema
 in Sprint 1 so that Sprint 5 can join the taxonomies without rework" (p.5).
 
@@ -244,15 +244,33 @@ in the DB.
   `annotator_id`, `review_notes`.
   - `alternative_group_id`: records in one posting that share it are **alternatives**
     ("Go or Python" means at least one is needed). The group shares one
-    `required_or_preferred`. Skills joined by "and" are never grouped. **[PROP]** The same
+    `required_or_preferred`. Skills joined by "and" are never grouped. An id is unique
+    within the whole `skills.csv` (one group belongs to one posting), and matches
+    `^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$`. **[PROP]** The same
     field is suggested for extractor output in `statements`, so P/R can treat alternatives
     consistently.
+- **`mention_relation` (PROPOSED, not adopted; not in `skills.csv`):** **[PROP]** how a skill
+  is mentioned:
+  - `direct`: the skill itself is named as needed or valued.
+  - `illustrative_example`: an example of a broader requirement, introduced by "such as",
+    "like", "e.g." or "including". The broader requirement goes in `example_of`.
+  - `category`: the broader requirement that an illustrative list exemplifies.
+
+  Illustrative examples are never alternatives. The extractor
+  (`config/schemas/skill_extraction_output_v1.json`) already outputs this field. Adding it
+  to the annotation files needs a team decision and a new `skills.csv` header version, so
+  existing annotation files are unchanged. Until then, annotations mark illustrative
+  examples with `DISCUSS: illustrative list` (guidelines §3b). The decision also covers
+  whether an example keeps the sentence's `required_or_preferred` (current guidelines) or
+  becomes `unspecified` (proposed in the AI review report).
 - **Offset convention:** zero-based Python character offsets into the unchanged
   `clean_text` of (`snapshot_id`, `posting_id`), end exclusive. **Proposed as the shared
   convention for `statements.source_span` offsets too**, so extractor output and gold can
   be matched by span. Section A may want the same rule for task annotations.
 
 ### Changelog
+- v0.5.3: §12 documents a proposed `mention_relation` field (direct | illustrative_example | category), as output by the Sprint 2 extractor; not adopted for annotation files.
+- v0.5.2: §12 states the `alternative_group_id` id rules as validated (file-unique, one posting per group, format).
 - v0.5.1: §12 adds an optional `alternative_group_id` (alternatives such as "Go or Python").
 - v0.5: Added §12 human annotation records (Team B Sprint 2 gold labels) and a proposed shared character-offset convention. Shared decisions D1–D3, D8 and D10 remain open.
 - v0.4: ESCO v1.2.1 reference tables defined from the real headers and implemented in local-dev SQLite (§8). D9 updated. O*NET remains a shared dependency (D10, owner not agreed).

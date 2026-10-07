@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skill_statement": {"type": "string"},
+          "evidence_text": {"type": "string"},
+          "evidence_context": {"type": "string"},
+          "section_heading": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "requirement_status": {"type": "string", "enum": ["required", "preferred", "unspecified"]},
+          "mention_relation": {"type": "string", "enum": ["direct", "illustrative_example", "category"]},
+          "example_of": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "alternative_group": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "skill_category": {
+            "anyOf": [
+              {"type": "string", "enum": ["technical", "tool", "domain_knowledge", "transferable"]},
+              {"type": "null"}
+            ]
+          },
+          "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+        },
+        "required": ["skill_statement", "evidence_text", "evidence_context", "section_heading",
+                     "requirement_status", "mention_relation", "example_of", "alternative_group",
+                     "skill_category", "notes"],
+        "additionalProperties": false
+      }
+    },
+    "no_skills_reason": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+  },
+  "required": ["skills", "no_skills_reason"],
+  "additionalProperties": false
+}
